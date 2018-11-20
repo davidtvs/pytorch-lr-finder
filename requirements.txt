@@ -1,0 +1,12 @@
+cycler==0.10.0
+kiwisolver==1.0.1
+matplotlib==3.0.2
+numpy==1.15.4
+Pillow==5.3.0
+pkg-resources==0.0.0
+pyparsing==2.3.0
+python-dateutil==2.7.5
+six==1.11.0
+torch==0.4.1
+torchvision==0.2.1
+tqdm==4.28.1
