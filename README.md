@@ -8,7 +8,7 @@ Typically, a good static learning rate can be found half-way on the descending l
 
 For cyclical learning rates (also detailed in Leslie Smith's paper) where the learning rate is cycled between two boundaries `(base_lr, max_lr)`, the author advises the point at which the loss starts descending and the point at which the loss stops descending or becomes ragged for `base_lr` and `max_lr` respectively.  In the plot below, `base_lr = 0.0002` and `max_lr=0.2`.
 
-![Learning rate range test](images/lr_finder_cifar10.png.png)
+![Learning rate range test](images/lr_finder_cifar10.png)
 
 ## Requirements
 
