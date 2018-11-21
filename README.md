@@ -48,6 +48,6 @@ lr_finder.plot(log_lr=False)
 ### Notes
 
 - Examples for CIFAR10 and MNIST can be found in the examples folder.
-- `LRFinder.range_test()` will change the model weights and the optimizer parameters. If you want to avoid this use: `model = copy.deepcopy(original_model)`
+- `LRFinder.range_test()` will change the model weights and the optimizer parameters. Both can be restored to their initial state with `LRFinder.reset()`.
 - The learning rate and loss history can be accessed through `lr_finder.history`. This will return a dictionary with `lr` and `loss` keys.
 - When using `step_mode="linear"` the learning rate range should be within the same order of magnitude.

@@ -39,12 +39,23 @@ class LRFinder(object):
         self.history = {"lr": [], "loss": []}
         self.best_loss = None
 
+        # Save the original state of the model and optimizer so they can be restored if
+        # needed
+        self.model_state = model.state_dict()
+        self.model_device = next(self.model.parameters()).device
+        self.optimizer_state = optimizer.state_dict()
+
         # If device is None, use the same as the model
-        if device is None:
-            self.device = next(self.model.parameters()).device
-        else:
+        if device:
             self.device = device
-            model = self.model.to(self.device)
+        else:
+            self.device = self.model_device
+
+    def reset(self):
+        """Restores the model and optimizer to their initial states."""
+        self.model.load_state_dict(self.model_state)
+        self.model.to(self.model_device)
+        self.optimizer.load_state_dict(self.optimizer_state)
 
     def range_test(
         self,
@@ -78,7 +89,14 @@ class LRFinder(object):
                 threshold:  diverge_th * best_loss. Default: 5.
 
         """
+        # Reset test results
+        self.history = {"lr": [], "loss": []}
+        self.best_loss = None
 
+        # Move the model to the proper device
+        self.model.to(self.device)
+
+        # Initialize the proper learning rate policy
         if step_mode.lower() == "exp":
             lr_schedule = ExponentialLR(self.optimizer, end_lr, num_iter)
         elif step_mode.lower() == "linear":
