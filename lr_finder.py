@@ -76,8 +76,7 @@ class LRFinder(object):
                 evaluated after each iteration on that dataset and the evaluation loss
                 is used. Note that in this mode the test takes significantly longer but
                 generally produces more precise results. Default: None.
-            end_lr (float, optional): the initial learning rate which is the lower
-                boundary of the test. Default: 10.
+            end_lr (float, optional): the maximum learning rate to test. Default: 10.
             num_iter (int, optional): the number of iterations over which the test
                 occurs. Default: 100.
             step_mode (str, optional): one of the available learning rate policies,
