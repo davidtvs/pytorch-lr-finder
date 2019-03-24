@@ -1,4 +1,5 @@
 from __future__ import print_function, with_statement, division
+import os
 import torch
 from tqdm.autonotebook import tqdm
 from torch.optim.lr_scheduler import _LRScheduler
@@ -22,6 +23,7 @@ class LRFinder(object):
             optional ordinal for the device type (e.g. "cuda:X", where is the ordinal).
             Alternatively, can be an object representing the device on which the
             computation will take place. Default: None, uses the same device as `model`.
+        cache_dir (string): path for storing temporary files.
 
     Example:
         >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
@@ -32,7 +34,7 @@ class LRFinder(object):
 
     """
 
-    def __init__(self, model, optimizer, criterion, device=None):
+    def __init__(self, model, optimizer, criterion, device=None, cache_dir=None):
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
@@ -41,9 +43,19 @@ class LRFinder(object):
 
         # Save the original state of the model and optimizer so they can be restored if
         # needed
-        self.model_state = model.state_dict()
+        if cache_dir is None:
+            import tempfile
+            cache_dir = tempfile.gettempdir()
+        else:
+            if os.path.isdir(cache_dir):
+                raise ValueError('Given `cache_dir` is not a valid directory.')
+
+        self.fn_model_state = os.path.join(cache_dir, 'model_state.pt')
+        self.fn_optimizer_state = os.path.join(cache_dir, 'optimizer_state.pt')
+
+        self.model_state = torch.save(model.state_dict(), self.fn_model_state)
         self.model_device = next(self.model.parameters()).device
-        self.optimizer_state = optimizer.state_dict()
+        self.optimizer_state = torch.save(optimizer.state_dict(), self.fn_optimizer_state)
 
         # If device is None, use the same as the model
         if device:
@@ -53,9 +65,17 @@ class LRFinder(object):
 
     def reset(self):
         """Restores the model and optimizer to their initial states."""
-        self.model.load_state_dict(self.model_state)
-        self.model.to(self.model_device)
-        self.optimizer.load_state_dict(self.optimizer_state)
+        if os.path.exists(self.fn_model_state) and os.path.exists(self.fn_optimizer_state):
+        self.model.load_state_dict(
+            torch.load(self.fn_model_state, map_location=lambda storage, location: storage),
+            self.model_state
+        )
+        self.optimizer.load_state_dict(
+            torch.load(self.fn_optimizer_state, map_location=lambda storage, location: storage),
+            self.optimizer_state
+        )
+        os.remove(self.fn_model_state)
+        os.remove(self.fn_optimizer_state)
 
     def range_test(
         self,
