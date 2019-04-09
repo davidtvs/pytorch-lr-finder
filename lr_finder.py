@@ -47,15 +47,15 @@ class LRFinder(object):
             import tempfile
             cache_dir = tempfile.gettempdir()
         else:
-            if os.path.isdir(cache_dir):
+            if not os.path.isdir(cache_dir):
                 raise ValueError('Given `cache_dir` is not a valid directory.')
 
         self.fn_model_state = os.path.join(cache_dir, 'model_state.pt')
         self.fn_optimizer_state = os.path.join(cache_dir, 'optimizer_state.pt')
 
-        self.model_state = torch.save(model.state_dict(), self.fn_model_state)
         self.model_device = next(self.model.parameters()).device
-        self.optimizer_state = torch.save(optimizer.state_dict(), self.fn_optimizer_state)
+        torch.save(model.state_dict(), self.fn_model_state)
+        torch.save(optimizer.state_dict(), self.fn_optimizer_state)
 
         # If device is None, use the same as the model
         if device:
@@ -66,16 +66,14 @@ class LRFinder(object):
     def reset(self):
         """Restores the model and optimizer to their initial states."""
         if os.path.exists(self.fn_model_state) and os.path.exists(self.fn_optimizer_state):
-        self.model.load_state_dict(
-            torch.load(self.fn_model_state, map_location=lambda storage, location: storage),
-            self.model_state
-        )
-        self.optimizer.load_state_dict(
-            torch.load(self.fn_optimizer_state, map_location=lambda storage, location: storage),
-            self.optimizer_state
-        )
-        os.remove(self.fn_model_state)
-        os.remove(self.fn_optimizer_state)
+            self.model.load_state_dict(
+                torch.load(self.fn_model_state, map_location=lambda storage, location: storage)
+            )
+            self.optimizer.load_state_dict(
+                torch.load(self.fn_optimizer_state, map_location=lambda storage, location: storage)
+            )
+            os.remove(self.fn_model_state)
+            os.remove(self.fn_optimizer_state)
 
     def range_test(
         self,
