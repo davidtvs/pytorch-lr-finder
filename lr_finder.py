@@ -1,4 +1,6 @@
 from __future__ import print_function, with_statement, division
+import copy
+import os
 import torch
 from tqdm.autonotebook import tqdm
 from torch.optim.lr_scheduler import _LRScheduler
@@ -22,6 +24,12 @@ class LRFinder(object):
             optional ordinal for the device type (e.g. "cuda:X", where is the ordinal).
             Alternatively, can be an object representing the device on which the
             computation will take place. Default: None, uses the same device as `model`.
+        memory_cache (boolean): if this flag is set to True, `state_dict` of model and
+            optimizer will be cached in memory. Otherwise, they will be saved to files
+            under the `cache_dir`.
+        cache_dir (string): path for storing temporary files. If no path is specified,
+            system-wide temporary directory is used.
+            Notice that this parameter will be ignored if `memory_cache` is True.
 
     Example:
         >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
@@ -32,18 +40,21 @@ class LRFinder(object):
 
     """
 
-    def __init__(self, model, optimizer, criterion, device=None):
+    def __init__(self, model, optimizer, criterion, device=None, memory_cache=True, cache_dir=None):
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.history = {"lr": [], "loss": []}
         self.best_loss = None
+        self.memory_cache = memory_cache
+        self.cache_dir = cache_dir
 
         # Save the original state of the model and optimizer so they can be restored if
         # needed
-        self.model_state = model.state_dict()
         self.model_device = next(self.model.parameters()).device
-        self.optimizer_state = optimizer.state_dict()
+        self.state_cacher = StateCacher(memory_cache, cache_dir=cache_dir)
+        self.state_cacher.store('model', self.model.state_dict())
+        self.state_cacher.store('optimizer', self.optimizer.state_dict())
 
         # If device is None, use the same as the model
         if device:
@@ -53,9 +64,9 @@ class LRFinder(object):
 
     def reset(self):
         """Restores the model and optimizer to their initial states."""
-        self.model.load_state_dict(self.model_state)
+        self.model.load_state_dict(self.state_cacher.retrieve('model'))
+        self.optimizer.load_state_dict(self.state_cacher.retrieve('optimizer'))
         self.model.to(self.model_device)
-        self.optimizer.load_state_dict(self.optimizer_state)
 
     def range_test(
         self,
@@ -264,3 +275,50 @@ class ExponentialLR(_LRScheduler):
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
         return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
+
+
+class StateCacher(object):
+    def __init__(self, in_memory, cache_dir=None):
+        self.in_memory = in_memory
+        self.cache_dir = cache_dir
+
+        if self.cache_dir is None:
+            import tempfile
+            self.cache_dir = tempfile.gettempdir()
+        else:
+            if not os.path.isdir(self.cache_dir):
+                raise ValueError('Given `cache_dir` is not a valid directory.')
+
+        self.cached = {}
+
+    def store(self, key, state_dict):
+        if self.in_memory:
+            self.cached.update({key: copy.deepcopy(state_dict)})
+        else:
+            fn = os.path.join(self.cache_dir, 'state_{}.pt'.format(key))
+            self.cached.update({key: fn})
+            torch.save(state_dict, fn)
+
+    def retrieve(self, key):
+        if key not in self.cached:
+            raise KeyError('Target {} was not cached.'.format(key))
+
+        if self.in_memory:
+            return self.cached.get(key)
+        else:
+            fn = self.cached.get(key)
+            if not os.path.exists(fn):
+                raise RuntimeError('Failed to load state in {}. File does not exist anymore.'.format(fn))
+            state_dict = torch.load(fn, map_location=lambda storage, location: storage)
+            os.remove(fn)
+            return state_dict
+
+    def __del__(self):
+        """Check whether there are unused cached files existing in `cache_dir` before
+        this instance being destroyed."""
+        if self.in_memory:
+            return
+
+        for k in self.cached:
+            if os.path.exists(self.cached[k]):
+                os.remove(self.cached[k])
