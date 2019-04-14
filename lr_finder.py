@@ -295,7 +295,7 @@ class StateCacher(object):
         if self.in_memory:
             self.cached.update({key: copy.deepcopy(state_dict)})
         else:
-            fn = os.path.join(self.cache_dir, 'state_{}.pt'.format(key))
+            fn = os.path.join(self.cache_dir, 'state_{}_{}.pt'.format(key, id(self)))
             self.cached.update({key: fn})
             torch.save(state_dict, fn)
 
@@ -310,7 +310,6 @@ class StateCacher(object):
             if not os.path.exists(fn):
                 raise RuntimeError('Failed to load state in {}. File does not exist anymore.'.format(fn))
             state_dict = torch.load(fn, map_location=lambda storage, location: storage)
-            os.remove(fn)
             return state_dict
 
     def __del__(self):
