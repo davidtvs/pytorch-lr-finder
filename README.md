@@ -25,8 +25,8 @@ Increases the learning rate in an exponential manner and computes the training l
 ```python
 model = ...
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(net.parameters(), lr=1e-7, weight_decay=1e-2)
-lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
+optimizer = optim.Adam(model.parameters(), lr=1e-7, weight_decay=1e-2)
+lr_finder = LRFinder(model, optimizer, criterion, device="cuda")
 lr_finder.range_test(trainloader, end_lr=100, num_iter=100)
 lr_finder.plot()
 ```
@@ -39,8 +39,8 @@ This approach typically produces more precise curves because the evaluation loss
 ```python
 model = ...
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(net.parameters(), lr=0.1, weight_decay=1e-2)
-lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
+optimizer = optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-2)
+lr_finder = LRFinder(model, optimizer, criterion, device="cuda")
 lr_finder.range_test(trainloader, end_lr=1, num_iter=100, step_mode="linear")
 lr_finder.plot(log_lr=False)
 ```
