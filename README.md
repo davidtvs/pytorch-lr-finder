@@ -10,11 +10,11 @@ For cyclical learning rates (also detailed in Leslie Smith's paper) where the le
 
 ![Learning rate range test](images/lr_finder_cifar10.png)
 
-## Requirements
 
-- Python 2.7 and above
-- pip
-- see `requirements.txt`
+## Installation
+
+Python 2.7 and above:
+``pip install torch-lr-finder``
 
 ## Implementation details and usage
 
@@ -23,6 +23,8 @@ For cyclical learning rates (also detailed in Leslie Smith's paper) where the le
 Increases the learning rate in an exponential manner and computes the training loss for each learning rate. `lr_finder.plot()` plots the training loss versus logarithmic learning rate.
 
 ```python
+from torch_lr_finder import LRFinder
+
 model = ...
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=1e-7, weight_decay=1e-2)
@@ -37,6 +39,8 @@ Increases the learning rate linearly and computes the evaluation loss for each l
 This approach typically produces more precise curves because the evaluation loss is more susceptible to divergence but it takes significantly longer to perform the test, especially if the evaluation dataset is large.
 
 ```python
+from torch_lr_finder import LRFinder
+
 model = ...
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-2)
