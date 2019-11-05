@@ -189,7 +189,7 @@ class LRFinder(object):
 
         return running_loss / len(dataloader.dataset)
 
-    def plot(self, skip_start=10, skip_end=5, log_lr=True):
+    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None):
         """Plots the learning rate range test.
 
         Arguments:
@@ -199,13 +199,16 @@ class LRFinder(object):
                 Default: 5.
             log_lr (bool, optional): True to plot the learning rate in a logarithmic
                 scale; otherwise, plotted in a linear scale. Default: True.
-
+            show_lr (float, optional): is set, will add vertical line to visualize
+                specified learning rate; Default: None
         """
 
         if skip_start < 0:
             raise ValueError("skip_start cannot be negative")
         if skip_end < 0:
             raise ValueError("skip_end cannot be negative")
+        if show_lr is not None and not isinstance(show_lr, float):
+            raise ValueError("show_lr must be float")
 
         # Get the data to plot from the history dictionary. Also, handle skip_end=0
         # properly so the behaviour is the expected
@@ -224,6 +227,9 @@ class LRFinder(object):
             plt.xscale("log")
         plt.xlabel("Learning rate")
         plt.ylabel("Loss")
+
+        if show_lr is not None:
+            plt.axvline(x=show_lr, color="red")
         plt.show()
 
 
