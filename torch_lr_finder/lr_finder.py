@@ -158,8 +158,7 @@ class LRFinder(object):
         self.model.train()
 
         # Move data to the correct device
-        inputs = inputs.to(self.device)
-        labels = labels.to(self.device)
+        inputs, labels = self._move_to_device(inputs, labels)
 
         # Forward pass
         self.optimizer.zero_grad()
@@ -172,6 +171,19 @@ class LRFinder(object):
 
         return loss.item()
 
+    def _move_to_device(self, inputs, labels):
+        def move(obj, device):
+            if isinstance(obj, tuple):
+                return tuple(move(o, device) for o in obj)
+            elif torch.is_tensor(obj):
+                return obj.to(device)
+            else:
+                return obj
+
+        inputs = move(inputs, self.device)
+        labels = move(labels, self.device)
+        return inputs, labels
+
     def _validate(self, dataloader):
         # Set model to evaluation mode and disable gradient computation
         running_loss = 0
@@ -179,8 +191,7 @@ class LRFinder(object):
         with torch.no_grad():
             for inputs, labels in dataloader:
                 # Move data to the correct device
-                inputs = inputs.to(self.device)
-                labels = labels.to(self.device)
+                inputs, labels = self._move_to_device(inputs, labels)
 
                 # Forward pass and loss computation
                 outputs = self.model(inputs)
