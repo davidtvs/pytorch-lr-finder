@@ -55,3 +55,32 @@ lr_finder.plot(log_lr=False)
 - `LRFinder.range_test()` will change the model weights and the optimizer parameters. Both can be restored to their initial state with `LRFinder.reset()`.
 - The learning rate and loss history can be accessed through `lr_finder.history`. This will return a dictionary with `lr` and `loss` keys.
 - When using `step_mode="linear"` the learning rate range should be within the same order of magnitude.
+
+
+## Support of gradient accumulation
+
+You can use `AccumulationLRFinder` to find learning rate with the mechanism of gradient accumulation.
+
+```python
+from torch.utils.data import DataLoader
+from torch_lr_finder import AccumulationLRFinder
+
+desired_batch_size, real_batch_size = 32, 4
+accumulation_steps = desired_batch_size // real_batch_size
+
+dataset = ...
+
+# Beware of the `batch_size` used by `DataLoader`
+trainloader = DataLoader(dataset, batch_size=real_bs, shuffle=True)
+
+model = ...
+criterion = ...
+optimizer = ...
+
+lr_finder = AccumulationLRFinder(
+    model, optimizer, criterion, device="cuda", 
+    accumulation_steps=accumulation_steps
+)
+lr_finder.range_test(trainloader, end_lr=10, num_iter=100, step_mode="exp")
+lr_finder.plot()
+```

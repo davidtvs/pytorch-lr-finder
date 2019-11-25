@@ -118,17 +118,10 @@ class LRFinder(object):
             raise ValueError("smooth_f is outside the range [0, 1[")
 
         # Create an iterator to get data batch by batch
-        iterator = iter(train_loader)
+        iter_wrapper = DataLoaderIterWrapper(train_loader)
         for iteration in tqdm(range(num_iter)):
-            # Get a new set of inputs and labels
-            try:
-                inputs, labels = next(iterator)
-            except StopIteration:
-                iterator = iter(train_loader)
-                inputs, labels = next(iterator)
-
             # Train on batch and retrieve loss
-            loss = self._train_batch(inputs, labels)
+            loss = self._train_batch(iter_wrapper)
             if val_loader:
                 loss = self._validate(val_loader)
 
@@ -153,11 +146,12 @@ class LRFinder(object):
 
         print("Learning rate search finished. See the graph with {finder_name}.plot()")
 
-    def _train_batch(self, inputs, labels):
+    def _train_batch(self, iter_wrapper):
         # Set model to training mode
         self.model.train()
 
         # Move data to the correct device
+        inputs, labels = iter_wrapper.get_batch()
         inputs, labels = self._move_to_device(inputs, labels)
 
         # Forward pass
@@ -242,6 +236,65 @@ class LRFinder(object):
         if show_lr is not None:
             plt.axvline(x=show_lr, color="red")
         plt.show()
+
+
+class AccumulationLRFinder(LRFinder):
+    """A learning rate finder implemented with the mechanism of gradient accumulation.
+
+    Arguments:
+        Except the following content, all required arguments are the same as those in `LRFinder`.
+
+        accumulation_steps (int): steps for gradient accumulation. If it is 1, this
+            `AccumulationLRFinder` will work like `LRFinder`. Default: 1.
+
+    Example:
+        >>> train_data = ...    # prepared dataset
+        >>> desired_bs, real_bs = 32, 4         # batch size
+        >>> accumulation_steps = desired_bs // real_bs     # required steps for accumulation
+        >>> dataloader = torch.utils.data.DataLoader(train_data, batch_size=real_bs, shuffle=True)
+        >>> acc_lr_finder = AccumulationLRFinder(
+                net, optimizer, criterion, device="cuda", accumulation_steps=accumulation_steps
+            )
+        >>> acc_lr_finder.range_test(dataloader, end_lr=10, num_iter=100)
+
+    Reference:
+    [Training Neural Nets on Larger Batches: Practical Tips for 1-GPU, Multi-GPU & Distributed setups](
+    https://medium.com/huggingface/ec88c3e51255)
+    [thomwolf/gradient_accumulation](https://gist.github.com/thomwolf/ac7a7da6b1888c2eeac8ac8b9b05d3d3)
+
+    """
+
+    def __init__(self, model, optimizer, criterion, device=None, memory_cache=True, cache_dir=None,
+        accumulation_steps=1):
+        super(AccumulationLRFinder, self).__init__(
+            model, optimizer, criterion, device=device, memory_cache=memory_cache, cache_dir=cache_dir
+        )
+        self.accumulation_steps = accumulation_steps
+
+    def _train_batch(self, iter_wrapper):
+        self.model.train()
+        total_loss = None   # for late initialization
+
+        self.optimizer.zero_grad()
+        for i in range(self.accumulation_steps):
+            inputs, labels = iter_wrapper.get_batch()
+            inputs, labels = self._move_to_device(inputs, labels)
+
+            outputs = self.model(inputs)
+            loss = self.criterion(outputs, labels)
+
+            # Loss should be averaged in each step
+            loss /= self.accumulation_steps
+            loss.backward()
+
+            if total_loss is None:
+                total_loss = loss
+            else:
+                total_loss += loss
+
+        self.optimizer.step()
+
+        return total_loss.item()
 
 
 class LinearLR(_LRScheduler):
@@ -338,3 +391,30 @@ class StateCacher(object):
         for k in self.cached:
             if os.path.exists(self.cached[k]):
                 os.remove(self.cached[k])
+
+
+class DataLoaderIterWrapper(object):
+    """
+    A wrapper for iterating `torch.utils.data.DataLoader` with the ability to reset
+    itself while `StopIteration` is raised.
+    """
+
+    def __init__(self, data_loader, auto_reset=True):
+        self.data_loader = data_loader
+        self.auto_reset = auto_reset
+        self._iterator = iter(data_loader)
+
+    def __next__(self):
+        # Get a new set of inputs and labels
+        try:
+            inputs, labels = next(self._iterator)
+        except StopIteration:
+            if not self.auto_reset:
+                raise
+            self._iterator = iter(self.data_loader)
+            inputs, labels = next(self._iterator)
+
+        return inputs, labels
+
+    def get_batch(self):
+        return next(self)
