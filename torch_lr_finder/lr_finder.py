@@ -6,6 +6,16 @@ from tqdm.autonotebook import tqdm
 from torch.optim.lr_scheduler import _LRScheduler
 import matplotlib.pyplot as plt
 
+try:
+    from apex import amp
+    IS_AMP_AVAILABLE = True
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning('To enable mixed precision training, please install `apex`.')
+    IS_AMP_AVAILABLE = False
+    del logging
+
 
 class LRFinder(object):
     """Learning rate range test.
@@ -160,7 +170,11 @@ class LRFinder(object):
         loss = self.criterion(outputs, labels)
 
         # Backward pass
-        loss.backward()
+        if IS_AMP_AVAILABLE and hasattr(self.optimizer, '_amp_stash'):
+            with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
         self.optimizer.step()
 
         return loss.item()
@@ -285,7 +299,16 @@ class AccumulationLRFinder(LRFinder):
 
             # Loss should be averaged in each step
             loss /= self.accumulation_steps
-            loss.backward()
+
+            if IS_AMP_AVAILABLE and hasattr(self.optimizer, '_amp_stash'):
+                # For minor performance optimization, see also:
+                # https://nvidia.github.io/apex/advanced.html#gradient-accumulation-across-iterations
+                delay_unscale = ((i + 1) % self.accumulation_steps) != 0
+
+                with amp.scale_loss(loss, self.optimizer, delay_unscale=delay_unscale) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss.backward()
 
             if total_loss is None:
                 total_loss = loss
