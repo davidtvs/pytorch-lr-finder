@@ -1,4 +1,32 @@
 import setuptools
+import sys
+
+
+# install requirements for mixed precision training
+if "amp" in sys.argv:
+    sys.argv.remove("amp")
+
+    from pip import __version__ as PIP_VERSION
+    PIP_MAJOR, PIP_MINOR = [int(v) for v in PIP_VERSION.split('.')[:2]]
+
+    if PIP_MAJOR <= 9:
+        raise RuntimeError(
+            'Current version of pip is not compatible with `apex`,'
+            'you may need to install `apex` manually.'
+        )
+    elif 10 <= PIP_MAJOR <= 19 and PIP_MINOR < 3:
+        from pip._internal import main as pipmain
+    else:
+        from pip._internal.main import main as pipmain
+
+    pipmain([
+        "install",
+        "git+https://github.com/NVIDIA/apex",
+        "-v", "--no-cache-dir",
+        "--global-option=--cpp_ext",
+        "--global-option=--cuda_ext",
+    ])
+
 
 with open("README.md", "r") as f:
     long_description = f.read()
