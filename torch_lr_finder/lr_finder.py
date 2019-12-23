@@ -11,8 +11,13 @@ try:
     IS_AMP_AVAILABLE = True
 except ImportError:
     import logging
+    logging.basicConfig()
     logger = logging.getLogger(__name__)
-    logger.warning('To enable mixed precision training, please install `apex`.')
+    logger.warning(
+        'To enable mixed precision training, please install `apex`. '
+        'Or you can re-install this package by the following command:\n'
+        '  pip install torch-lr-finder -v --global-option="amp"'
+    )
     IS_AMP_AVAILABLE = False
     del logging
 
@@ -438,6 +443,9 @@ class DataLoaderIterWrapper(object):
             inputs, labels = next(self._iterator)
 
         return inputs, labels
+
+    # make it compatible with python 2
+    next = __next__
 
     def get_batch(self):
         return next(self)

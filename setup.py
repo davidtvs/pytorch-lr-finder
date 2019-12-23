@@ -6,6 +6,11 @@ import sys
 if "amp" in sys.argv:
     sys.argv.remove("amp")
 
+    if sys.version_info[0] < 3:
+        raise RuntimeError(
+            'Dependency `apex` for mixed precision training requires Python 3.'
+        )
+
     from pip import __version__ as PIP_VERSION
     PIP_MAJOR, PIP_MINOR = [int(v) for v in PIP_VERSION.split('.')[:2]]
 
