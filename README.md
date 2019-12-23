@@ -14,7 +14,14 @@ For cyclical learning rates (also detailed in Leslie Smith's paper) where the le
 ## Installation
 
 Python 2.7 and above:
-``pip install torch-lr-finder``
+```bash
+pip install torch-lr-finder
+```
+
+Install with the support of mixed precision training (requires Python 3, see also [this section](#Mixed-precision-training)):
+```
+pip install torch-lr-finder -v --global-option="amp"
+```
 
 ## Implementation details and usage
 
@@ -55,3 +62,52 @@ lr_finder.plot(log_lr=False)
 - `LRFinder.range_test()` will change the model weights and the optimizer parameters. Both can be restored to their initial state with `LRFinder.reset()`.
 - The learning rate and loss history can be accessed through `lr_finder.history`. This will return a dictionary with `lr` and `loss` keys.
 - When using `step_mode="linear"` the learning rate range should be within the same order of magnitude.
+
+
+## Additional support for training
+
+### Gradient accumulation
+
+You can use `AccumulationLRFinder` to find learning rate with the mechanism of gradient accumulation.
+
+```python
+from torch.utils.data import DataLoader
+from torch_lr_finder import AccumulationLRFinder
+
+desired_batch_size, real_batch_size = 32, 4
+accumulation_steps = desired_batch_size // real_batch_size
+
+dataset = ...
+
+# Beware of the `batch_size` used by `DataLoader`
+trainloader = DataLoader(dataset, batch_size=real_bs, shuffle=True)
+
+model = ...
+criterion = ...
+optimizer = ...
+
+lr_finder = AccumulationLRFinder(
+    model, optimizer, criterion, device="cuda", 
+    accumulation_steps=accumulation_steps
+)
+lr_finder.range_test(trainloader, end_lr=10, num_iter=100, step_mode="exp")
+lr_finder.plot()
+```
+
+### Mixed precision training
+
+Currently, we use [`apex`](https://github.com/NVIDIA/apex) as the dependency for mixed precision training.
+To enable mixed precision training, you just need to call `amp.initialize()` before running `LRFinder`. e.g.
+
+```python
+# Add this line before running `LRFinder`
+model, optimizer = amp.initialize(model, optimizer, opt_level='O1')
+
+lr_finder = LRFinder(model, optimizer, criterion, device='cuda')
+lr_finder.range_test(trainloader, end_lr=10, num_iter=100, step_mode='exp')
+lr_finder.plot()
+```
+
+Note that the benefit of mixed precision training requires a nvidia GPU with tensor cores (see also: [NVIDIA/apex #297](https://github.com/NVIDIA/apex/issues/297))
+
+Besides, you can try to set `torch.backends.cudnn.benchmark = True` to improve the training speed. (but it won't work for some cases, you should use it at your own risk)
