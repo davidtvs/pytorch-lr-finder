@@ -8,14 +8,16 @@ import matplotlib.pyplot as plt
 
 try:
     from apex import amp
+
     IS_AMP_AVAILABLE = True
 except ImportError:
     import logging
+
     logging.basicConfig()
     logger = logging.getLogger(__name__)
     logger.warning(
-        'To enable mixed precision training, please install `apex`. '
-        'Or you can re-install this package by the following command:\n'
+        "To enable mixed precision training, please install `apex`. "
+        "Or you can re-install this package by the following command:\n"
         '  pip install torch-lr-finder -v --global-option="amp"'
     )
     IS_AMP_AVAILABLE = False
@@ -43,8 +45,8 @@ class LRFinder(object):
             optimizer will be cached in memory. Otherwise, they will be saved to files
             under the `cache_dir`.
         cache_dir (string): path for storing temporary files. If no path is specified,
-            system-wide temporary directory is used.
-            Notice that this parameter will be ignored if `memory_cache` is True.
+            system-wide temporary directory is used. Notice that this parameter will be
+            ignored if `memory_cache` is True.
 
     Example:
         >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
@@ -52,10 +54,17 @@ class LRFinder(object):
 
     Cyclical Learning Rates for Training Neural Networks: https://arxiv.org/abs/1506.01186
     fastai/lr_find: https://github.com/fastai/fastai
-
     """
 
-    def __init__(self, model, optimizer, criterion, device=None, memory_cache=True, cache_dir=None):
+    def __init__(
+        self,
+        model,
+        optimizer,
+        criterion,
+        device=None,
+        memory_cache=True,
+        cache_dir=None,
+    ):
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
@@ -68,8 +77,8 @@ class LRFinder(object):
         # needed
         self.model_device = next(self.model.parameters()).device
         self.state_cacher = StateCacher(memory_cache, cache_dir=cache_dir)
-        self.state_cacher.store('model', self.model.state_dict())
-        self.state_cacher.store('optimizer', self.optimizer.state_dict())
+        self.state_cacher.store("model", self.model.state_dict())
+        self.state_cacher.store("optimizer", self.optimizer.state_dict())
 
         # If device is None, use the same as the model
         if device:
@@ -79,8 +88,9 @@ class LRFinder(object):
 
     def reset(self):
         """Restores the model and optimizer to their initial states."""
-        self.model.load_state_dict(self.state_cacher.retrieve('model'))
-        self.optimizer.load_state_dict(self.state_cacher.retrieve('optimizer'))
+
+        self.model.load_state_dict(self.state_cacher.retrieve("model"))
+        self.optimizer.load_state_dict(self.state_cacher.retrieve("optimizer"))
         self.model.to(self.model_device)
 
     def range_test(
@@ -112,8 +122,8 @@ class LRFinder(object):
                 exponential smoothing. Default: 0.05.
             diverge_th (int, optional): the test is stopped when the loss surpasses the
                 threshold:  diverge_th * best_loss. Default: 5.
-
         """
+
         # Reset test results
         self.history = {"lr": [], "loss": []}
         self.best_loss = None
@@ -175,7 +185,7 @@ class LRFinder(object):
         loss = self.criterion(outputs, labels)
 
         # Backward pass
-        if IS_AMP_AVAILABLE and hasattr(self.optimizer, '_amp_stash'):
+        if IS_AMP_AVAILABLE and hasattr(self.optimizer, "_amp_stash"):
             with amp.scale_loss(loss, self.optimizer) as scaled_loss:
                 scaled_loss.backward()
         else:
@@ -224,7 +234,7 @@ class LRFinder(object):
             log_lr (bool, optional): True to plot the learning rate in a logarithmic
                 scale; otherwise, plotted in a linear scale. Default: True.
             show_lr (float, optional): is set, will add vertical line to visualize
-                specified learning rate; Default: None
+                specified learning rate; Default: None.
         """
 
         if skip_start < 0:
@@ -277,22 +287,34 @@ class AccumulationLRFinder(LRFinder):
         >>> acc_lr_finder.range_test(dataloader, end_lr=10, num_iter=100)
 
     Reference:
-    [Training Neural Nets on Larger Batches: Practical Tips for 1-GPU, Multi-GPU & Distributed setups](
-    https://medium.com/huggingface/ec88c3e51255)
+    [Training Neural Nets on Larger Batches: Practical Tips for 1-GPU, Multi-GPU & Distributed setups](https://medium.com/huggingface/ec88c3e51255)
     [thomwolf/gradient_accumulation](https://gist.github.com/thomwolf/ac7a7da6b1888c2eeac8ac8b9b05d3d3)
 
     """
 
-    def __init__(self, model, optimizer, criterion, device=None, memory_cache=True, cache_dir=None,
-        accumulation_steps=1):
+    def __init__(
+        self,
+        model,
+        optimizer,
+        criterion,
+        device=None,
+        memory_cache=True,
+        cache_dir=None,
+        accumulation_steps=1,
+    ):
         super(AccumulationLRFinder, self).__init__(
-            model, optimizer, criterion, device=device, memory_cache=memory_cache, cache_dir=cache_dir
+            model,
+            optimizer,
+            criterion,
+            device=device,
+            memory_cache=memory_cache,
+            cache_dir=cache_dir,
         )
         self.accumulation_steps = accumulation_steps
 
     def _train_batch(self, iter_wrapper):
         self.model.train()
-        total_loss = None   # for late initialization
+        total_loss = None  # for late initialization
 
         self.optimizer.zero_grad()
         for i in range(self.accumulation_steps):
@@ -305,12 +327,14 @@ class AccumulationLRFinder(LRFinder):
             # Loss should be averaged in each step
             loss /= self.accumulation_steps
 
-            if IS_AMP_AVAILABLE and hasattr(self.optimizer, '_amp_stash'):
+            if IS_AMP_AVAILABLE and hasattr(self.optimizer, "_amp_stash"):
                 # For minor performance optimization, see also:
                 # https://nvidia.github.io/apex/advanced.html#gradient-accumulation-across-iterations
                 delay_unscale = ((i + 1) % self.accumulation_steps) != 0
 
-                with amp.scale_loss(loss, self.optimizer, delay_unscale=delay_unscale) as scaled_loss:
+                with amp.scale_loss(
+                    loss, self.optimizer, delay_unscale=delay_unscale
+                ) as scaled_loss:
                     scaled_loss.backward()
             else:
                 loss.backward()
@@ -331,12 +355,9 @@ class LinearLR(_LRScheduler):
 
     Arguments:
         optimizer (torch.optim.Optimizer): wrapped optimizer.
-        end_lr (float, optional): the initial learning rate which is the lower
-            boundary of the test. Default: 10.
-        num_iter (int, optional): the number of iterations over which the test
-            occurs. Default: 100.
+        end_lr (float): the final learning rate.
+        num_iter (int): the number of iterations over which the test occurs.
         last_epoch (int): the index of last epoch. Default: -1.
-
     """
 
     def __init__(self, optimizer, end_lr, num_iter, last_epoch=-1):
@@ -356,12 +377,9 @@ class ExponentialLR(_LRScheduler):
 
     Arguments:
         optimizer (torch.optim.Optimizer): wrapped optimizer.
-        end_lr (float, optional): the initial learning rate which is the lower
-            boundary of the test. Default: 10.
-        num_iter (int, optional): the number of iterations over which the test
-            occurs. Default: 100.
+        end_lr (float): the final learning rate.
+        num_iter (int): the number of iterations over which the test occurs.
         last_epoch (int): the index of last epoch. Default: -1.
-
     """
 
     def __init__(self, optimizer, end_lr, num_iter, last_epoch=-1):
@@ -382,10 +400,11 @@ class StateCacher(object):
 
         if self.cache_dir is None:
             import tempfile
+
             self.cache_dir = tempfile.gettempdir()
         else:
             if not os.path.isdir(self.cache_dir):
-                raise ValueError('Given `cache_dir` is not a valid directory.')
+                raise ValueError("Given `cache_dir` is not a valid directory.")
 
         self.cached = {}
 
@@ -393,26 +412,29 @@ class StateCacher(object):
         if self.in_memory:
             self.cached.update({key: copy.deepcopy(state_dict)})
         else:
-            fn = os.path.join(self.cache_dir, 'state_{}_{}.pt'.format(key, id(self)))
+            fn = os.path.join(self.cache_dir, "state_{}_{}.pt".format(key, id(self)))
             self.cached.update({key: fn})
             torch.save(state_dict, fn)
 
     def retrieve(self, key):
         if key not in self.cached:
-            raise KeyError('Target {} was not cached.'.format(key))
+            raise KeyError("Target {} was not cached.".format(key))
 
         if self.in_memory:
             return self.cached.get(key)
         else:
             fn = self.cached.get(key)
             if not os.path.exists(fn):
-                raise RuntimeError('Failed to load state in {}. File does not exist anymore.'.format(fn))
+                raise RuntimeError(
+                    "Failed to load state in {}. File doesn't exist anymore.".format(fn)
+                )
             state_dict = torch.load(fn, map_location=lambda storage, location: storage)
             return state_dict
 
     def __del__(self):
         """Check whether there are unused cached files existing in `cache_dir` before
         this instance being destroyed."""
+
         if self.in_memory:
             return
 
@@ -422,10 +444,8 @@ class StateCacher(object):
 
 
 class DataLoaderIterWrapper(object):
-    """
-    A wrapper for iterating `torch.utils.data.DataLoader` with the ability to reset
-    itself while `StopIteration` is raised.
-    """
+    """A wrapper for iterating `torch.utils.data.DataLoader` with the ability to reset
+    itself while `StopIteration` is raised."""
 
     def __init__(self, data_loader, auto_reset=True):
         self.data_loader = data_loader
