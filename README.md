@@ -10,7 +10,6 @@ For cyclical learning rates (also detailed in Leslie Smith's paper) where the le
 
 ![Learning rate range test](images/lr_finder_cifar10.png)
 
-
 ## Installation
 
 Python 2.7 and above:
@@ -37,7 +36,8 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=1e-7, weight_decay=1e-2)
 lr_finder = LRFinder(model, optimizer, criterion, device="cuda")
 lr_finder.range_test(trainloader, end_lr=100, num_iter=100)
-lr_finder.plot()
+lr_finder.plot() # to inspect the loss-learning rate graph
+lr_finder.reset() # to reset the model and optimizer to their initial state
 ```
 
 ### Leslie Smith's approach
@@ -52,8 +52,9 @@ model = ...
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-2)
 lr_finder = LRFinder(model, optimizer, criterion, device="cuda")
-lr_finder.range_test(trainloader, end_lr=1, num_iter=100, step_mode="linear")
+lr_finder.range_test(trainloader, val_loader=val_loader, end_lr=1, num_iter=100, step_mode="linear")
 lr_finder.plot(log_lr=False)
+lr_finder.reset()
 ```
 
 ### Notes
@@ -63,16 +64,15 @@ lr_finder.plot(log_lr=False)
 - The learning rate and loss history can be accessed through `lr_finder.history`. This will return a dictionary with `lr` and `loss` keys.
 - When using `step_mode="linear"` the learning rate range should be within the same order of magnitude.
 
-
 ## Additional support for training
 
 ### Gradient accumulation
 
-You can use `AccumulationLRFinder` to find learning rate with the mechanism of gradient accumulation.
+You can use `LRFinder` to find learning rate with the mechanism of gradient accumulation.
 
 ```python
 from torch.utils.data import DataLoader
-from torch_lr_finder import AccumulationLRFinder
+from torch_lr_finder import LRFinder
 
 desired_batch_size, real_batch_size = 32, 4
 accumulation_steps = desired_batch_size // real_batch_size
@@ -86,12 +86,10 @@ model = ...
 criterion = ...
 optimizer = ...
 
-lr_finder = AccumulationLRFinder(
-    model, optimizer, criterion, device="cuda", 
-    accumulation_steps=accumulation_steps
-)
-lr_finder.range_test(trainloader, end_lr=10, num_iter=100, step_mode="exp")
+lr_finder = LRFinder(model, optimizer, criterion, device="cuda")
+lr_finder.range_test(trainloader, end_lr=10, num_iter=100, step_mode="exp", accumulation_steps=accumulation_steps)
 lr_finder.plot()
+lr_finder.reset()
 ```
 
 ### Mixed precision training
@@ -100,12 +98,16 @@ Currently, we use [`apex`](https://github.com/NVIDIA/apex) as the dependency for
 To enable mixed precision training, you just need to call `amp.initialize()` before running `LRFinder`. e.g.
 
 ```python
+from torch_lr_finder import LRFinder
+from apex import amp
+
 # Add this line before running `LRFinder`
 model, optimizer = amp.initialize(model, optimizer, opt_level='O1')
 
 lr_finder = LRFinder(model, optimizer, criterion, device='cuda')
 lr_finder.range_test(trainloader, end_lr=10, num_iter=100, step_mode='exp')
 lr_finder.plot()
+lr_finder.reset()
 ```
 
 Note that the benefit of mixed precision training requires a nvidia GPU with tensor cores (see also: [NVIDIA/apex #297](https://github.com/NVIDIA/apex/issues/297))

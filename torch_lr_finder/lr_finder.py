@@ -41,17 +41,20 @@ class LRFinder(object):
             optional ordinal for the device type (e.g. "cuda:X", where is the ordinal).
             Alternatively, can be an object representing the device on which the
             computation will take place. Default: None, uses the same device as `model`.
-        memory_cache (boolean): if this flag is set to True, `state_dict` of model and
-            optimizer will be cached in memory. Otherwise, they will be saved to files
-            under the `cache_dir`.
-        cache_dir (string): path for storing temporary files. If no path is specified,
-            system-wide temporary directory is used. Notice that this parameter will be
-            ignored if `memory_cache` is True.
+        memory_cache (boolean, optional): if this flag is set to True, `state_dict` of
+            model and optimizer will be cached in memory. Otherwise, they will be saved
+            to files under the `cache_dir`.
+        cache_dir (string, optional): path for storing temporary files. If no path is
+            specified, system-wide temporary directory is used. Notice that this
+            parameter will be ignored if `memory_cache` is True.
 
     Example:
         >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
         >>> lr_finder.range_test(dataloader, end_lr=100, num_iter=100)
+        >>> lr_finder.plot() # to inspect the loss-learning rate graph
+        >>> lr_finder.reset() # to reset the model and optimizer to their initial state
 
+    Reference:
     Cyclical Learning Rates for Training Neural Networks: https://arxiv.org/abs/1506.01186
     fastai/lr_find: https://github.com/fastai/fastai
     """
@@ -102,6 +105,7 @@ class LRFinder(object):
         step_mode="exp",
         smooth_f=0.05,
         diverge_th=5,
+        accumulation_steps=1,
     ):
         """Performs the learning rate range test.
 
@@ -122,6 +126,29 @@ class LRFinder(object):
                 exponential smoothing. Default: 0.05.
             diverge_th (int, optional): the test is stopped when the loss surpasses the
                 threshold:  diverge_th * best_loss. Default: 5.
+            accumulation_steps (int, optional): steps for gradient accumulation. If it
+                is 1, gradients are not accumulated. Default: 1.
+
+        Example (fastai approach):
+            >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
+            >>> lr_finder.range_test(dataloader, end_lr=100, num_iter=100)
+
+        Example (Leslie Smith's approach):
+            >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
+            >>> lr_finder.range_test(trainloader, val_loader=val_loader, end_lr=1, num_iter=100, step_mode="linear")
+
+        Gradient accumulation is supported; example:
+            >>> train_data = ...    # prepared dataset
+            >>> desired_bs, real_bs = 32, 4         # batch size
+            >>> accumulation_steps = desired_bs // real_bs     # required steps for accumulation
+            >>> dataloader = torch.utils.data.DataLoader(train_data, batch_size=real_bs, shuffle=True)
+            >>> acc_lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
+            >>> acc_lr_finder.range_test(dataloader, end_lr=10, num_iter=100, accumulation_steps=accumulation_steps)
+
+        Reference:
+        [Training Neural Nets on Larger Batches: Practical Tips for 1-GPU, Multi-GPU & Distributed setups](
+        https://medium.com/huggingface/ec88c3e51255)
+        [thomwolf/gradient_accumulation](https://gist.github.com/thomwolf/ac7a7da6b1888c2eeac8ac8b9b05d3d3)
         """
 
         # Reset test results
@@ -146,7 +173,7 @@ class LRFinder(object):
         iter_wrapper = DataLoaderIterWrapper(train_loader)
         for iteration in tqdm(range(num_iter)):
             # Train on batch and retrieve loss
-            loss = self._train_batch(iter_wrapper)
+            loss = self._train_batch(iter_wrapper, accumulation_steps)
             if val_loader:
                 loss = self._validate(val_loader)
 
@@ -171,28 +198,43 @@ class LRFinder(object):
 
         print("Learning rate search finished. See the graph with {finder_name}.plot()")
 
-    def _train_batch(self, iter_wrapper):
-        # Set model to training mode
+    def _train_batch(self, iter_wrapper, accumulation_steps):
         self.model.train()
+        total_loss = None  # for late initialization
 
-        # Move data to the correct device
-        inputs, labels = iter_wrapper.get_batch()
-        inputs, labels = self._move_to_device(inputs, labels)
-
-        # Forward pass
         self.optimizer.zero_grad()
-        outputs = self.model(inputs)
-        loss = self.criterion(outputs, labels)
+        for i in range(accumulation_steps):
+            inputs, labels = iter_wrapper.get_batch()
+            inputs, labels = self._move_to_device(inputs, labels)
 
-        # Backward pass
-        if IS_AMP_AVAILABLE and hasattr(self.optimizer, "_amp_stash"):
-            with amp.scale_loss(loss, self.optimizer) as scaled_loss:
-                scaled_loss.backward()
-        else:
-            loss.backward()
+            # Forward pass
+            outputs = self.model(inputs)
+            loss = self.criterion(outputs, labels)
+
+            # Loss should be averaged in each step
+            loss /= accumulation_steps
+
+            # Backward pass
+            if IS_AMP_AVAILABLE and hasattr(self.optimizer, "_amp_stash"):
+                # For minor performance optimization, see also:
+                # https://nvidia.github.io/apex/advanced.html#gradient-accumulation-across-iterations
+                delay_unscale = ((i + 1) % accumulation_steps) != 0
+
+                with amp.scale_loss(
+                    loss, self.optimizer, delay_unscale=delay_unscale
+                ) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss.backward()
+
+            if total_loss is None:
+                total_loss = loss
+            else:
+                total_loss += loss
+
         self.optimizer.step()
 
-        return loss.item()
+        return total_loss.item()
 
     def _move_to_device(self, inputs, labels):
         def move(obj, device):
@@ -267,88 +309,6 @@ class LRFinder(object):
         plt.show()
 
 
-class AccumulationLRFinder(LRFinder):
-    """A learning rate finder implemented with the mechanism of gradient accumulation.
-
-    Arguments:
-        Except the following content, all required arguments are the same as those in `LRFinder`.
-
-        accumulation_steps (int): steps for gradient accumulation. If it is 1, this
-            `AccumulationLRFinder` will work like `LRFinder`. Default: 1.
-
-    Example:
-        >>> train_data = ...    # prepared dataset
-        >>> desired_bs, real_bs = 32, 4         # batch size
-        >>> accumulation_steps = desired_bs // real_bs     # required steps for accumulation
-        >>> dataloader = torch.utils.data.DataLoader(train_data, batch_size=real_bs, shuffle=True)
-        >>> acc_lr_finder = AccumulationLRFinder(
-                net, optimizer, criterion, device="cuda", accumulation_steps=accumulation_steps
-            )
-        >>> acc_lr_finder.range_test(dataloader, end_lr=10, num_iter=100)
-
-    Reference:
-    [Training Neural Nets on Larger Batches: Practical Tips for 1-GPU, Multi-GPU & Distributed setups](https://medium.com/huggingface/ec88c3e51255)
-    [thomwolf/gradient_accumulation](https://gist.github.com/thomwolf/ac7a7da6b1888c2eeac8ac8b9b05d3d3)
-
-    """
-
-    def __init__(
-        self,
-        model,
-        optimizer,
-        criterion,
-        device=None,
-        memory_cache=True,
-        cache_dir=None,
-        accumulation_steps=1,
-    ):
-        super(AccumulationLRFinder, self).__init__(
-            model,
-            optimizer,
-            criterion,
-            device=device,
-            memory_cache=memory_cache,
-            cache_dir=cache_dir,
-        )
-        self.accumulation_steps = accumulation_steps
-
-    def _train_batch(self, iter_wrapper):
-        self.model.train()
-        total_loss = None  # for late initialization
-
-        self.optimizer.zero_grad()
-        for i in range(self.accumulation_steps):
-            inputs, labels = iter_wrapper.get_batch()
-            inputs, labels = self._move_to_device(inputs, labels)
-
-            outputs = self.model(inputs)
-            loss = self.criterion(outputs, labels)
-
-            # Loss should be averaged in each step
-            loss /= self.accumulation_steps
-
-            if IS_AMP_AVAILABLE and hasattr(self.optimizer, "_amp_stash"):
-                # For minor performance optimization, see also:
-                # https://nvidia.github.io/apex/advanced.html#gradient-accumulation-across-iterations
-                delay_unscale = ((i + 1) % self.accumulation_steps) != 0
-
-                with amp.scale_loss(
-                    loss, self.optimizer, delay_unscale=delay_unscale
-                ) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
-
-            if total_loss is None:
-                total_loss = loss
-            else:
-                total_loss += loss
-
-        self.optimizer.step()
-
-        return total_loss.item()
-
-
 class LinearLR(_LRScheduler):
     """Linearly increases the learning rate between two boundaries over a number of
     iterations.
@@ -357,7 +317,7 @@ class LinearLR(_LRScheduler):
         optimizer (torch.optim.Optimizer): wrapped optimizer.
         end_lr (float): the final learning rate.
         num_iter (int): the number of iterations over which the test occurs.
-        last_epoch (int): the index of last epoch. Default: -1.
+        last_epoch (int, optional): the index of last epoch. Default: -1.
     """
 
     def __init__(self, optimizer, end_lr, num_iter, last_epoch=-1):
@@ -379,7 +339,7 @@ class ExponentialLR(_LRScheduler):
         optimizer (torch.optim.Optimizer): wrapped optimizer.
         end_lr (float): the final learning rate.
         num_iter (int): the number of iterations over which the test occurs.
-        last_epoch (int): the index of last epoch. Default: -1.
+        last_epoch (int, optional): the index of last epoch. Default: -1.
     """
 
     def __init__(self, optimizer, end_lr, num_iter, last_epoch=-1):
