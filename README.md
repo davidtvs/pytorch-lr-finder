@@ -68,7 +68,7 @@ lr_finder.reset()
 
 ### Gradient accumulation
 
-You can use `LRFinder` to find learning rate with the mechanism of gradient accumulation.
+You can set the `accumulation_steps` parameter in `LRFinder.range_test()` with a proper value to perform gradient accumulation:
 
 ```python
 from torch.utils.data import DataLoader
