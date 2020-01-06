@@ -100,6 +100,7 @@ class LRFinder(object):
         self,
         train_loader,
         val_loader=None,
+        start_lr=None,
         end_lr=10,
         num_iter=100,
         step_mode="exp",
@@ -116,6 +117,8 @@ class LRFinder(object):
                 evaluated after each iteration on that dataset and the evaluation loss
                 is used. Note that in this mode the test takes significantly longer but
                 generally produces more precise results. Default: None.
+            start_lr (float, optional): the starting learning rate for the range test.
+                Default: None (uses the learning rate from the optimizer).
             end_lr (float, optional): the maximum learning rate to test. Default: 10.
             num_iter (int, optional): the number of iterations over which the test
                 occurs. Default: 100.
@@ -158,6 +161,10 @@ class LRFinder(object):
         # Move the model to the proper device
         self.model.to(self.device)
 
+        # Set the starting learning rate
+        if start_lr:
+            self._set_learning_rate(start_lr)
+
         # Initialize the proper learning rate policy
         if step_mode.lower() == "exp":
             lr_schedule = ExponentialLR(self.optimizer, end_lr, num_iter)
@@ -197,6 +204,10 @@ class LRFinder(object):
                 break
 
         print("Learning rate search finished. See the graph with {finder_name}.plot()")
+
+    def _set_learning_rate(self, new_lr):
+        for param_group in self.optimizer.param_groups:
+            param_group["lr"] = new_lr
 
     def _train_batch(self, iter_wrapper, accumulation_steps):
         self.model.train()
