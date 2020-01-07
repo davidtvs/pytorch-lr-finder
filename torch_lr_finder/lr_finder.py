@@ -68,8 +68,11 @@ class LRFinder(object):
         memory_cache=True,
         cache_dir=None,
     ):
-        self.model = model
+        # Check if the optimizer is already attached to a scheduler
         self.optimizer = optimizer
+        self._check_for_scheduler()
+
+        self.model = model
         self.criterion = criterion
         self.history = {"lr": [], "loss": []}
         self.best_loss = None
@@ -161,6 +164,9 @@ class LRFinder(object):
         # Move the model to the proper device
         self.model.to(self.device)
 
+        # Check if the optimizer is already attached to a scheduler
+        self._check_for_scheduler()
+
         # Set the starting learning rate
         if start_lr:
             self._set_learning_rate(start_lr)
@@ -205,9 +211,22 @@ class LRFinder(object):
 
         print("Learning rate search finished. See the graph with {finder_name}.plot()")
 
-    def _set_learning_rate(self, new_lr):
-        for param_group in self.optimizer.param_groups:
+    def _set_learning_rate(self, new_lrs):
+        if not isinstance(new_lrs, list):
+            new_lrs = [new_lrs] * len(self.optimizer.param_groups)
+        if len(new_lrs) != len(self.optimizer.param_groups):
+            raise ValueError(
+                "Length of `new_lrs` is not equal to the number of parameter groups "
+                + "in the given optimizer"
+            )
+
+        for param_group, new_lr in zip(self.optimizer.param_groups, new_lrs):
             param_group["lr"] = new_lr
+
+    def _check_for_scheduler(self):
+        for param_group in self.optimizer.param_groups:
+            if "initial_lr" in param_group:
+                raise RuntimeError("Optimizer already has a scheduler attached to it")
 
     def _train_batch(self, iter_wrapper, accumulation_steps):
         self.model.train()
