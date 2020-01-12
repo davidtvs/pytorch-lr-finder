@@ -68,8 +68,11 @@ class LRFinder(object):
         memory_cache=True,
         cache_dir=None,
     ):
-        self.model = model
+        # Check if the optimizer is already attached to a scheduler
         self.optimizer = optimizer
+        self._check_for_scheduler()
+
+        self.model = model
         self.criterion = criterion
         self.history = {"lr": [], "loss": []}
         self.best_loss = None
@@ -100,6 +103,7 @@ class LRFinder(object):
         self,
         train_loader,
         val_loader=None,
+        start_lr=None,
         end_lr=10,
         num_iter=100,
         step_mode="exp",
@@ -116,6 +120,8 @@ class LRFinder(object):
                 evaluated after each iteration on that dataset and the evaluation loss
                 is used. Note that in this mode the test takes significantly longer but
                 generally produces more precise results. Default: None.
+            start_lr (float, optional): the starting learning rate for the range test.
+                Default: None (uses the learning rate from the optimizer).
             end_lr (float, optional): the maximum learning rate to test. Default: 10.
             num_iter (int, optional): the number of iterations over which the test
                 occurs. Default: 100.
@@ -158,6 +164,13 @@ class LRFinder(object):
         # Move the model to the proper device
         self.model.to(self.device)
 
+        # Check if the optimizer is already attached to a scheduler
+        self._check_for_scheduler()
+
+        # Set the starting learning rate
+        if start_lr:
+            self._set_learning_rate(start_lr)
+
         # Initialize the proper learning rate policy
         if step_mode.lower() == "exp":
             lr_schedule = ExponentialLR(self.optimizer, end_lr, num_iter)
@@ -197,6 +210,23 @@ class LRFinder(object):
                 break
 
         print("Learning rate search finished. See the graph with {finder_name}.plot()")
+
+    def _set_learning_rate(self, new_lrs):
+        if not isinstance(new_lrs, list):
+            new_lrs = [new_lrs] * len(self.optimizer.param_groups)
+        if len(new_lrs) != len(self.optimizer.param_groups):
+            raise ValueError(
+                "Length of `new_lrs` is not equal to the number of parameter groups "
+                + "in the given optimizer"
+            )
+
+        for param_group, new_lr in zip(self.optimizer.param_groups, new_lrs):
+            param_group["lr"] = new_lr
+
+    def _check_for_scheduler(self):
+        for param_group in self.optimizer.param_groups:
+            if "initial_lr" in param_group:
+                raise RuntimeError("Optimizer already has a scheduler attached to it")
 
     def _train_batch(self, iter_wrapper, accumulation_steps):
         self.model.train()

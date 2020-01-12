@@ -6,19 +6,21 @@ The learning rate range test is a test that provides valuable information about 
 
 Typically, a good static learning rate can be found half-way on the descending loss curve. In the plot below that would be `lr = 0.002`.
 
-For cyclical learning rates (also detailed in Leslie Smith's paper) where the learning rate is cycled between two boundaries `(base_lr, max_lr)`, the author advises the point at which the loss starts descending and the point at which the loss stops descending or becomes ragged for `base_lr` and `max_lr` respectively.  In the plot below, `base_lr = 0.0002` and `max_lr=0.2`.
+For cyclical learning rates (also detailed in Leslie Smith's paper) where the learning rate is cycled between two boundaries `(start_lr, end_lr)`, the author advises the point at which the loss starts descending and the point at which the loss stops descending or becomes ragged for `start_lr` and `end_lr` respectively.  In the plot below, `start_lr = 0.0002` and `end_lr=0.2`.
 
 ![Learning rate range test](images/lr_finder_cifar10.png)
 
 ## Installation
 
 Python 2.7 and above:
+
 ```bash
 pip install torch-lr-finder
 ```
 
 Install with the support of mixed precision training (requires Python 3, see also [this section](#Mixed-precision-training)):
-```
+
+```bash
 pip install torch-lr-finder -v --global-option="amp"
 ```
 
@@ -60,6 +62,7 @@ lr_finder.reset()
 ### Notes
 
 - Examples for CIFAR10 and MNIST can be found in the examples folder.
+- The optimizer passed to `LRFinder` should not have an `LRScheduler` attached to it.
 - `LRFinder.range_test()` will change the model weights and the optimizer parameters. Both can be restored to their initial state with `LRFinder.reset()`.
 - The learning rate and loss history can be accessed through `lr_finder.history`. This will return a dictionary with `lr` and `loss` keys.
 - When using `step_mode="linear"` the learning rate range should be within the same order of magnitude.
