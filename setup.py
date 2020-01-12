@@ -8,29 +8,33 @@ if "amp" in sys.argv:
 
     if sys.version_info[0] < 3:
         raise RuntimeError(
-            'Dependency `apex` for mixed precision training requires Python 3.'
+            "Dependency `apex` for mixed precision training requires Python 3."
         )
 
     from pip import __version__ as PIP_VERSION
-    PIP_MAJOR, PIP_MINOR = [int(v) for v in PIP_VERSION.split('.')[:2]]
+
+    PIP_MAJOR, PIP_MINOR = [int(v) for v in PIP_VERSION.split(".")[:2]]
 
     if PIP_MAJOR <= 9:
         raise RuntimeError(
-            'Current version of pip is not compatible with `apex`,'
-            'you may need to install `apex` manually.'
+            "Current version of pip is not compatible with `apex`,"
+            "you may need to install `apex` manually."
         )
     elif 10 <= PIP_MAJOR <= 19 and PIP_MINOR < 3:
         from pip._internal import main as pipmain
     else:
         from pip._internal.main import main as pipmain
 
-    pipmain([
-        "install",
-        "git+https://github.com/NVIDIA/apex",
-        "-v", "--no-cache-dir",
-        "--global-option=--cpp_ext",
-        "--global-option=--cuda_ext",
-    ])
+    pipmain(
+        [
+            "install",
+            "git+https://github.com/NVIDIA/apex",
+            "-v",
+            "--no-cache-dir",
+            "--global-option=--cpp_ext",
+            "--global-option=--cuda_ext",
+        ]
+    )
 
 
 with open("README.md", "r") as f:
@@ -38,7 +42,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="torch-lr-finder",
-    version="0.0.3",
+    version="0.1",
     author="David Silva",
     author_email="davidtvs10@gmail.com",
     description="Pytorch implementation of the learning rate range test",
