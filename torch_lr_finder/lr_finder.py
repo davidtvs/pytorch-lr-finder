@@ -272,6 +272,8 @@ class LRFinder(object):
                 return tuple(move(o, device) for o in obj)
             elif torch.is_tensor(obj):
                 return obj.to(device)
+            elif isinstance(obj, list):
+                return [move(o, device) for o in obj]
             else:
                 return obj
 
