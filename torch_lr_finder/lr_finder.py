@@ -289,11 +289,16 @@ class LRFinder(object):
             for inputs, labels in dataloader:
                 # Move data to the correct device
                 inputs, labels = self._move_to_device(inputs, labels)
+                
+                if isinstance(inputs, tuple) or isinstance(inputs, list):
+                    batch_size = inputs[0].size(0)
+                else:
+                    batch_size = inputs.size(0)
 
                 # Forward pass and loss computation
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, labels)
-                running_loss += loss.item() * inputs.size(0)
+                running_loss += loss.item() * batch_size
 
         return running_loss / len(dataloader.dataset)
 
