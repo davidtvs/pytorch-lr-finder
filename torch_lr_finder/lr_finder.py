@@ -289,7 +289,7 @@ class LRFinder(object):
             for inputs, labels in dataloader:
                 # Move data to the correct device
                 inputs, labels = self._move_to_device(inputs, labels)
-                
+
                 if isinstance(inputs, tuple) or isinstance(inputs, list):
                     batch_size = inputs[0].size(0)
                 else:
@@ -457,7 +457,7 @@ class DataLoaderIterWrapper(object):
             if not self.auto_reset:
                 raise
             self._iterator = iter(self.data_loader)
-            inputs, labels = next(self._iterator)
+            inputs, labels, *_ = next(self._iterator)
 
         return inputs, labels
 
