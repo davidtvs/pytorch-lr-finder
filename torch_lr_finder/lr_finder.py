@@ -5,6 +5,7 @@ import torch
 from tqdm.autonotebook import tqdm
 from torch.optim.lr_scheduler import _LRScheduler
 import matplotlib.pyplot as plt
+import pathlib
 
 try:
     from apex import amp
@@ -302,7 +303,7 @@ class LRFinder(object):
 
         return running_loss / len(dataloader.dataset)
 
-    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None):
+    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None, filepath=None):
         """Plots the learning rate range test.
 
         Arguments:
@@ -314,6 +315,8 @@ class LRFinder(object):
                 scale; otherwise, plotted in a linear scale. Default: True.
             show_lr (float, optional): is set, will add vertical line to visualize
                 specified learning rate; Default: None.
+            filepath (str, optional): path to save the plot. If parent directory does not exist, it will be created.
+                Default: None, example: results/plots/plot.png
         """
 
         if skip_start < 0:
@@ -343,6 +346,16 @@ class LRFinder(object):
 
         if show_lr is not None:
             plt.axvline(x=show_lr, color="red")
+
+        if filepath is not None:
+            path = pathlib.Path(filepath)
+            parent_directory = path.parents[0]
+            if not parent_directory.is_dir():
+                print(f'Creating directory "{parent_directory}" as it does not exist')
+                parent_directory.mkdir(parents=True, exist_ok=True)
+            print(f'Saving plot under "{path}"')
+            plt.savefig(path)
+
         plt.show()
 
 
