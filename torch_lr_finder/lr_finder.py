@@ -5,7 +5,6 @@ import torch
 from tqdm.autonotebook import tqdm
 from torch.optim.lr_scheduler import _LRScheduler
 import matplotlib.pyplot as plt
-import pathlib
 
 try:
     from apex import amp
@@ -348,13 +347,12 @@ class LRFinder(object):
             plt.axvline(x=show_lr, color="red")
 
         if filepath is not None:
-            path = pathlib.Path(filepath)
-            parent_directory = path.parents[0]
-            if not parent_directory.is_dir():
+            parent_directory = os.path.dirname(filepath)
+            if not os.path.isdir(parent_directory):
                 print(f'Creating directory "{parent_directory}" as it does not exist')
-                parent_directory.mkdir(parents=True, exist_ok=True)
-            print(f'Saving plot under "{path}"')
-            plt.savefig(path)
+                os.mkdir(parent_directory)
+            print(f'Saving plot under "{parent_directory}"')
+            plt.savefig(filepath)
 
         plt.show()
 
