@@ -302,7 +302,7 @@ class LRFinder(object):
 
         return running_loss / len(dataloader.dataset)
 
-    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None):
+    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None, ax=None):
         """Plots the learning rate range test.
 
         Arguments:
@@ -312,8 +312,15 @@ class LRFinder(object):
                 Default: 5.
             log_lr (bool, optional): True to plot the learning rate in a logarithmic
                 scale; otherwise, plotted in a linear scale. Default: True.
-            show_lr (float, optional): is set, will add vertical line to visualize
-                specified learning rate; Default: None.
+            show_lr (float, optional): if set, adds a vertical line to visualize the
+                specified learning rate. Default: None.
+            ax (matplotlib.axes.Axes, optional): the plot is created in the specified
+                matplotlib axes object and the figure is not be shown. If `None`, then
+                the figure and axes object are created in this method and the figure is
+                shown . Default: None.
+
+        Returns:
+            The matplotlib.axes.Axes object that contains the plot.
         """
 
         if skip_start < 0:
@@ -334,16 +341,26 @@ class LRFinder(object):
             lrs = lrs[skip_start:-skip_end]
             losses = losses[skip_start:-skip_end]
 
+        # Create the figure and axes object if axes was not already given
+        fig = None
+        if ax is None:
+            fig, ax = plt.subplots()
+
         # Plot loss as a function of the learning rate
-        plt.plot(lrs, losses)
+        ax.plot(lrs, losses)
         if log_lr:
-            plt.xscale("log")
-        plt.xlabel("Learning rate")
-        plt.ylabel("Loss")
+            ax.set_xscale("log")
+        ax.set_xlabel("Learning rate")
+        ax.set_ylabel("Loss")
 
         if show_lr is not None:
-            plt.axvline(x=show_lr, color="red")
-        plt.show()
+            ax.axvline(x=show_lr, color="red")
+
+        # Show only if the figure was created internally
+        if fig is not None:
+            plt.show()
+
+        return ax
 
 
 class LinearLR(_LRScheduler):
