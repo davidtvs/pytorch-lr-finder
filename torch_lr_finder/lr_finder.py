@@ -286,7 +286,7 @@ class LRFinder(object):
         running_loss = 0
         self.model.eval()
         with torch.no_grad():
-            for inputs, labels in dataloader:
+            for inputs, labels, *_ in dataloader:
                 # Move data to the correct device
                 inputs, labels = self._move_to_device(inputs, labels)
 
@@ -469,7 +469,7 @@ class DataLoaderIterWrapper(object):
     def __next__(self):
         # Get a new set of inputs and labels
         try:
-            inputs, labels = next(self._iterator)
+            inputs, labels, *_ = next(self._iterator)
         except StopIteration:
             if not self.auto_reset:
                 raise
