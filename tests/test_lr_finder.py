@@ -60,7 +60,7 @@ class TestReset:
         'cls_task',
         [
             mod_task.XORTask,
-            mod_task.DifferentLearningRateTask,
+            mod_task.DiscriminativeLearningRateTask,
         ],
     )
     def test_reset(self, cls_task):

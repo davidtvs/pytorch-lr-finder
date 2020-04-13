@@ -1,16 +1,16 @@
-from os import getenv as os_getenv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader, Subset
+import pytest
 
 from .model import LinearMLP
 from .dataset import XORDataset, ExtraXORDataset
 
 
 def use_cuda():
-    if int(os_getenv('CPU_ONLY', '0')):
+    if pytest.custom_cmdopt.cpu_only:
         return False
     else:
         return torch.cuda.is_available()
@@ -46,17 +46,16 @@ class BaseTask(object):
         self.val_loader = None
 
     def __post_init__(self):
-        # check whether cuda is available or not
+        # Check whether cuda is available or not, and we will cast `self.device`
+        # to `torch.device` here to make sure operations related to moving tensor
+        # would work fine later.
         if not use_cuda():
             self.device = None
         if self.device is None:
             return
 
         if isinstance(self.device, str):
-            try:
-                self.device = torch.device(self.device)
-            except RuntimeError as ex:
-                raise ex
+            self.device = torch.device(self.device)
         elif not isinstance(self.device, torch.device):
             raise TypeError('Invalid type of device.')
 
@@ -98,9 +97,9 @@ class ExtraXORTask(BaseTask):
         self.device = torch.device('cuda')
 
 
-class DifferentLearningRateTask(BaseTask):
+class DiscriminativeLearningRateTask(BaseTask):
     def __init__(self, validate=False):
-        super(DifferentLearningRateTask, self).__init__()
+        super(DiscriminativeLearningRateTask, self).__init__()
         bs, steps = 8, 64
         dataset = XORDataset(bs*steps)
         if validate:

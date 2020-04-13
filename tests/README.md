@@ -8,10 +8,10 @@
     $ python -mpytest ./tests
     ```
 
-- run tests on a machine without GPU
+- forcibly run all tests on CPU
     ```bash
     # in root directory of this package
-    $ CPU_ONLY=1 python -mpytest ./tests
+    $ python -mpytest --cpu_only ./tests
     ```
 
 ## How to add new test cases
