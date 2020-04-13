@@ -6,11 +6,6 @@ import sys
 if "amp" in sys.argv:
     sys.argv.remove("amp")
 
-    if sys.version_info[0] < 3:
-        raise RuntimeError(
-            "Dependency `apex` for mixed precision training requires Python 3."
-        )
-
     from pip import __version__ as PIP_VERSION
 
     PIP_MAJOR, PIP_MINOR = [int(v) for v in PIP_VERSION.split(".")[:2]]
@@ -59,6 +54,6 @@ setuptools.setup(
         "Topic :: Software Development",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
-    python_requires=">=2.7",
+    python_requires=">=3",
     install_requires=["matplotlib", "numpy", "torch>=0.4.1", "tqdm"],
 )
