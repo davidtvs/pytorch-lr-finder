@@ -12,13 +12,13 @@ For cyclical learning rates (also detailed in Leslie Smith's paper) where the le
 
 ## Installation
 
-Python 2.7 and above:
+Python 3:
 
 ```bash
 pip install torch-lr-finder
 ```
 
-Install with the support of mixed precision training (requires Python 3, see also [this section](#Mixed-precision-training)):
+Install with the support of mixed precision training (see also [this section](#Mixed-precision-training)):
 
 ```bash
 pip install torch-lr-finder -v --global-option="amp"

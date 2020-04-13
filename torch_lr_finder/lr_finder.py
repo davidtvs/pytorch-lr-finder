@@ -1,4 +1,3 @@
-from __future__ import print_function, with_statement, division
 import copy
 import os
 import torch
@@ -234,7 +233,7 @@ class LRFinder(object):
 
         self.optimizer.zero_grad()
         for i in range(accumulation_steps):
-            inputs, labels = iter_wrapper.get_batch()
+            inputs, labels = next(iter_wrapper)
             inputs, labels = self._move_to_device(inputs, labels)
 
             # Forward pass
@@ -477,9 +476,3 @@ class DataLoaderIterWrapper(object):
             inputs, labels, *_ = next(self._iterator)
 
         return inputs, labels
-
-    # make it compatible with python 2
-    next = __next__
-
-    def get_batch(self):
-        return next(self)
