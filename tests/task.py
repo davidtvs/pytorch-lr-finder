@@ -24,18 +24,7 @@ class TaskTemplate(type):
         return obj
 
 
-def use_metaclass(meta_cls):
-    """ A decorator to make metaclass work on both Py2k and Py3k. """
-    def wrapper(cls):
-        attrs = vars(cls).copy()
-        attrs.pop('__dict__', None)
-        attrs.pop('__weakref__', None)
-        return meta_cls(cls.__name__, cls.__bases__, attrs)
-    return wrapper
-
-
-@use_metaclass(TaskTemplate)
-class BaseTask(object):
+class BaseTask(metaclass=TaskTemplate):
     def __init__(self):
         self.batch_size = -1
         self.model = None
