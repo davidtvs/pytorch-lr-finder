@@ -273,6 +273,8 @@ class LRFinder(object):
                 return tuple(move(o, device) for o in obj)
             elif isinstance(obj, list):
                 return [move(o, device) for o in obj]
+            elif isinstance(obj, dict):
+                return {k: move(o, device) for k, o in obj.items()}
             else:
                 return obj
 
