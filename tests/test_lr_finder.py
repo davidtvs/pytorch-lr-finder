@@ -5,12 +5,9 @@ from . import task as mod_task
 
 
 def collect_task_classes():
-    from . import task as mod
-    from .task import BaseTask
-
-    names = [v for v in dir(mod) if v.endswith('Task') and v != 'BaseTask']
-    attrs = [getattr(mod, v) for v in names]
-    classes = [v for v in attrs if issubclass(v, BaseTask)]
+    names = [v for v in dir(mod_task) if v.endswith('Task') and v != 'BaseTask']
+    attrs = [getattr(mod_task, v) for v in names]
+    classes = [v for v in attrs if issubclass(v, mod_task.BaseTask)]
     return classes
 
 
