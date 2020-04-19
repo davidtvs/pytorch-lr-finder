@@ -15,9 +15,9 @@ class XORDataset(Dataset):
         _shape = (length,) + tuple(shape) if shape else (length, 8)
         raw = np.random.randint(0, 2, _shape)
         self.data = torch.FloatTensor(raw)
-        self.label = torch.tensor(
-            np.bitwise_xor.reduce(raw, axis=1)
-        ).unsqueeze(dim=1).float()
+        self.label = (
+            torch.tensor(np.bitwise_xor.reduce(raw, axis=1)).unsqueeze(dim=1).float()
+        )
 
     def __getitem__(self, index):
         return self.data[index], self.label[index]
@@ -28,6 +28,7 @@ class XORDataset(Dataset):
 
 class ExtraXORDataset(XORDataset):
     """ A XOR dataset which is able to return extra values. """
+
     def __init__(self, length, shape=None, extra_dims=1):
         """
         Arguments:

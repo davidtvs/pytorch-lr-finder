@@ -19,7 +19,7 @@ def use_cuda():
 class TaskTemplate(type):
     def __call__(cls, *args, **kwargs):
         obj = type.__call__(cls, *args, **kwargs)
-        if hasattr(obj, '__post_init__'):
+        if hasattr(obj, "__post_init__"):
             obj.__post_init__()
         return obj
 
@@ -46,17 +46,17 @@ class BaseTask(metaclass=TaskTemplate):
         if isinstance(self.device, str):
             self.device = torch.device(self.device)
         elif not isinstance(self.device, torch.device):
-            raise TypeError('Invalid type of device.')
+            raise TypeError("Invalid type of device.")
 
 
 class XORTask(BaseTask):
     def __init__(self, validate=False):
         super(XORTask, self).__init__()
         bs, steps = 8, 64
-        dataset = XORDataset(bs*steps)
+        dataset = XORDataset(bs * steps)
         if validate:
-            self.train_loader = DataLoader(Subset(dataset, range(steps-bs)))
-            self.val_loader = DataLoader(Subset(dataset, range(steps-bs, steps)))
+            self.train_loader = DataLoader(Subset(dataset, range(steps - bs)))
+            self.val_loader = DataLoader(Subset(dataset, range(steps - bs, steps)))
         else:
             self.train_loader = DataLoader(dataset)
             self.val_loader = None
@@ -65,17 +65,17 @@ class XORTask(BaseTask):
         self.model = LinearMLP([8, 4, 1])
         self.optimizer = optim.SGD(self.model.parameters(), lr=1e-3)
         self.criterion = nn.MSELoss()
-        self.device = torch.device('cuda')
+        self.device = torch.device("cuda")
 
 
 class ExtraXORTask(BaseTask):
     def __init__(self, validate=False):
         super(ExtraXORTask, self).__init__()
         bs, steps = 8, 64
-        dataset = ExtraXORDataset(bs*steps, extra_dims=2)
+        dataset = ExtraXORDataset(bs * steps, extra_dims=2)
         if validate:
-            self.train_loader = DataLoader(Subset(dataset, range(steps-bs)))
-            self.val_loader = DataLoader(Subset(dataset, range(steps-bs, steps)))
+            self.train_loader = DataLoader(Subset(dataset, range(steps - bs)))
+            self.val_loader = DataLoader(Subset(dataset, range(steps - bs, steps)))
         else:
             self.train_loader = DataLoader(dataset)
             self.val_loader = None
@@ -83,17 +83,17 @@ class ExtraXORTask(BaseTask):
         self.model = LinearMLP([8, 4, 1])
         self.optimizer = optim.SGD(self.model.parameters(), lr=1e-3)
         self.criterion = nn.MSELoss()
-        self.device = torch.device('cuda')
+        self.device = torch.device("cuda")
 
 
 class DiscriminativeLearningRateTask(BaseTask):
     def __init__(self, validate=False):
         super(DiscriminativeLearningRateTask, self).__init__()
         bs, steps = 8, 64
-        dataset = XORDataset(bs*steps)
+        dataset = XORDataset(bs * steps)
         if validate:
-            self.train_loader = DataLoader(Subset(dataset, range(steps-bs)))
-            self.val_loader = DataLoader(Subset(dataset, range(steps-bs, steps)))
+            self.train_loader = DataLoader(Subset(dataset, range(steps - bs)))
+            self.val_loader = DataLoader(Subset(dataset, range(steps - bs, steps)))
         else:
             self.train_loader = DataLoader(dataset)
             self.val_loader = None
@@ -102,10 +102,11 @@ class DiscriminativeLearningRateTask(BaseTask):
         self.model = LinearMLP([8, 4, 1])
         self.optimizer = optim.SGD(
             [
-                {'params': self.model.net[0].parameters(), 'lr': 0.01},
-                {'params': self.model.net[1].parameters(), 'lr': 0.001},
+                {"params": self.model.net[0].parameters(), "lr": 0.01},
+                {"params": self.model.net[1].parameters(), "lr": 0.001},
             ],
-            lr=1e-3, momentum=0.5
+            lr=1e-3,
+            momentum=0.5,
         )
         self.criterion = nn.MSELoss()
-        self.device = torch.device('cuda')
+        self.device = torch.device("cuda")

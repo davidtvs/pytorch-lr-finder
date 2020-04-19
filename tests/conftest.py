@@ -8,6 +8,7 @@ class CustomCommandLineOption(object):
     5.0, this class is made to work as a store of command line options for
     those components which are not able to access them via `request.config`.
     """
+
     def __init__(self):
         self._content = {}
 
@@ -29,8 +30,7 @@ class CustomCommandLineOption(object):
 
 def pytest_addoption(parser):
     parser.addoption(
-        '--cpu_only', action='store_true',
-        help='Forcibly run all tests on CPU.'
+        "--cpu_only", action="store_true", help="Forcibly run all tests on CPU."
     )
 
 
@@ -38,6 +38,4 @@ def pytest_configure(config):
     # Bind a config object to `pytest` module instance
     pytest.custom_cmdopt = CustomCommandLineOption()
 
-    pytest.custom_cmdopt.add(
-        'cpu_only', config.getoption('--cpu_only')
-    )
+    pytest.custom_cmdopt.add("cpu_only", config.getoption("--cpu_only"))
