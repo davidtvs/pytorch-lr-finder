@@ -12,7 +12,7 @@ For cyclical learning rates (also detailed in Leslie Smith's paper) where the le
 
 ## Installation
 
-Python 3:
+Python 3.5 and above:
 
 ```bash
 pip install torch-lr-finder
