@@ -116,3 +116,7 @@ lr_finder.reset()
 Note that the benefit of mixed precision training requires a nvidia GPU with tensor cores (see also: [NVIDIA/apex #297](https://github.com/NVIDIA/apex/issues/297))
 
 Besides, you can try to set `torch.backends.cudnn.benchmark = True` to improve the training speed. (but it won't work for some cases, you should use it at your own risk)
+
+## Contributing and pull requests
+
+All contributions are welcome but first, have a look at [CONTRIBUTING.md](CONTRIBUTING.md).
