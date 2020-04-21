@@ -1,6 +1,6 @@
 # Contributing
 
-All contributions to torch_lr_finder are welcome but make sure you read this first before making a PR.
+All contributions are welcome but make sure you read this first before making a PR.
 
 1. Generally there are two contribution categories:
    - Bug-fixing: please search for the issue [here](https://github.com/davidtvs/pytorch-lr-finder/issues) first (including the closed issues). If you cannot find it feel free to create an issue so we can discuss it before making the PR. If there's already an issue, read through the discussion and propose the bug fix there before making the PR.
@@ -19,7 +19,7 @@ All contributions to torch_lr_finder are welcome but make sure you read this fir
 
 A virtual environment or other forms of environment isolation are highly recommended before you continue.
 
-- Installing pytorch-lr-finder in development mode:
+- Installing torch-lr-finder in development mode:
     ```sh
     pip install -e .[dev]
     ```
