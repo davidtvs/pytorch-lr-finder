@@ -54,6 +54,17 @@ setuptools.setup(
         "Topic :: Software Development",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
-    python_requires=">=3",
+    python_requires=">=3.5.9",
     install_requires=["matplotlib", "numpy", "torch>=0.4.1", "tqdm"],
+    extras_require={
+        "tests": ["pytest"],
+        "dev": [
+            "pytest",
+            "flake8",
+            "black",
+            "pep8-naming",
+            "torchvision",
+            "ipywidgets",
+        ],
+    },
 )

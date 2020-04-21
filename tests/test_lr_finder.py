@@ -1,7 +1,7 @@
 import pytest
 from torch_lr_finder import LRFinder
 
-from . import task as mod_task
+import task as mod_task
 
 
 def collect_task_classes():
