@@ -265,10 +265,10 @@ class LRFinder(object):
 
         return total_loss.item()
 
-    def _move_to_device(self, inputs, labels):
+    def _move_to_device(self, inputs, labels, non_blocking=True):
         def move(obj, device):
             if hasattr(obj, "to"):
-                return obj.to(device)
+                return obj.to(device, non_blocking=non_blocking)
             elif isinstance(obj, tuple):
                 return tuple(move(o, device) for o in obj)
             elif isinstance(obj, list):
