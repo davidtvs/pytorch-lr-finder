@@ -57,9 +57,10 @@ setuptools.setup(
     python_requires=">=3.5.9",
     install_requires=["matplotlib", "numpy", "torch>=0.4.1", "tqdm"],
     extras_require={
-        "tests": ["pytest"],
+        "tests": ["pytest", "pytest-cov"],
         "dev": [
             "pytest",
+            "pytest-cov",
             "flake8",
             "black",
             "pep8-naming",
