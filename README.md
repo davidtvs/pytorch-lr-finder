@@ -1,6 +1,6 @@
 # PyTorch learning rate finder
 
-![build](https://github.com/actions/hello-world/workflows/ci/badge.svg?branch=dev/codeconv_integration)
+![build](https://github.com/davidtvs/pytorch-lr-finder/workflows/ci/badge.svg?branch=dev/codeconv_integration)
 
 A PyTorch implementation of the learning rate range test detailed in [Cyclical Learning Rates for Training Neural Networks](https://arxiv.org/abs/1506.01186) by Leslie N. Smith and the tweaked version used by [fastai](https://github.com/fastai/fastai).
 
