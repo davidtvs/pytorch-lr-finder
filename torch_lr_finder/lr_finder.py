@@ -286,8 +286,9 @@ class LRFinder(object):
         running_loss = 0
         self.model.eval()
         with torch.no_grad():
-            for inputs, labels, *_ in dataloader:
+            for batch in dataloader:
                 # Move data to the correct device
+                inputs, labels, _ = unpack_batch(batch)
                 inputs, labels = self._move_to_device(inputs, labels)
 
                 if isinstance(inputs, tuple) or isinstance(inputs, list):
@@ -469,12 +470,12 @@ class DataLoaderIterWrapper(object):
     def __next__(self):
         # Get a new set of inputs and labels
         try:
-            inputs, labels, *_ = next(self._iterator)
+            inputs, labels, _ = unpack_batch(next(self._iterator))
         except StopIteration:
             if not self.auto_reset:
                 raise
             self._iterator = iter(self.data_loader)
-            inputs, labels, *_ = next(self._iterator)
+            inputs, labels, _ = unpack_batch(next(self._iterator))
 
         return inputs, labels
 
@@ -483,3 +484,9 @@ class DataLoaderIterWrapper(object):
 
     def get_batch(self):
         return next(self)
+
+
+def unpack_batch(batch):
+    """Mimics the functionality of extended iterable unpacking from Py3k (PEP-3132) so
+    that it can be used in Py2k."""
+    return batch[0], batch[1], batch[2:]
