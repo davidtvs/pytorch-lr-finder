@@ -109,6 +109,7 @@ class LRFinder(object):
         smooth_f=0.05,
         diverge_th=5,
         accumulation_steps=1,
+        non_blocking_transfer=True,
     ):
         """Performs the learning rate range test.
 
@@ -133,6 +134,9 @@ class LRFinder(object):
                 threshold:  diverge_th * best_loss. Default: 5.
             accumulation_steps (int, optional): steps for gradient accumulation. If it
                 is 1, gradients are not accumulated. Default: 1.
+            non_blocking_transfer (bool, optional): when non_blocking_transfer is set,
+                tries to convert/move data to the device asynchronously if possible,
+                e.g., moving CPU Tensors with pinned memory to CUDA devices. Default: True.
 
         Example (fastai approach):
             >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
@@ -185,9 +189,15 @@ class LRFinder(object):
         iter_wrapper = DataLoaderIterWrapper(train_loader)
         for iteration in tqdm(range(num_iter)):
             # Train on batch and retrieve loss
-            loss = self._train_batch(iter_wrapper, accumulation_steps)
+            loss = self._train_batch(
+                iter_wrapper,
+                accumulation_steps,
+                non_blocking_transfer=non_blocking_transfer,
+            )
             if val_loader:
-                loss = self._validate(val_loader)
+                loss = self._validate(
+                    val_loader, non_blocking_transfer=non_blocking_transfer
+                )
 
             # Update the learning rate
             lr_schedule.step()
@@ -227,14 +237,18 @@ class LRFinder(object):
             if "initial_lr" in param_group:
                 raise RuntimeError("Optimizer already has a scheduler attached to it")
 
-    def _train_batch(self, iter_wrapper, accumulation_steps):
+    def _train_batch(
+        self, iter_wrapper, accumulation_steps, non_blocking_transfer=True
+    ):
         self.model.train()
         total_loss = None  # for late initialization
 
         self.optimizer.zero_grad()
         for i in range(accumulation_steps):
             inputs, labels = next(iter_wrapper)
-            inputs, labels = self._move_to_device(inputs, labels)
+            inputs, labels = self._move_to_device(
+                inputs, labels, non_blocking=non_blocking_transfer
+            )
 
             # Forward pass
             outputs = self.model(inputs)
@@ -265,31 +279,33 @@ class LRFinder(object):
 
         return total_loss.item()
 
-    def _move_to_device(self, inputs, labels):
-        def move(obj, device):
+    def _move_to_device(self, inputs, labels, non_blocking=True):
+        def move(obj, device, non_blocking=True):
             if hasattr(obj, "to"):
-                return obj.to(device)
+                return obj.to(device, non_blocking=non_blocking)
             elif isinstance(obj, tuple):
-                return tuple(move(o, device) for o in obj)
+                return tuple(move(o, device, non_blocking) for o in obj)
             elif isinstance(obj, list):
-                return [move(o, device) for o in obj]
+                return [move(o, device, non_blocking) for o in obj]
             elif isinstance(obj, dict):
-                return {k: move(o, device) for k, o in obj.items()}
+                return {k: move(o, device, non_blocking) for k, o in obj.items()}
             else:
                 return obj
 
-        inputs = move(inputs, self.device)
-        labels = move(labels, self.device)
+        inputs = move(inputs, self.device, non_blocking=non_blocking)
+        labels = move(labels, self.device, non_blocking=non_blocking)
         return inputs, labels
 
-    def _validate(self, dataloader):
+    def _validate(self, dataloader, non_blocking_transfer=True):
         # Set model to evaluation mode and disable gradient computation
         running_loss = 0
         self.model.eval()
         with torch.no_grad():
             for inputs, labels, *_ in dataloader:
                 # Move data to the correct device
-                inputs, labels = self._move_to_device(inputs, labels)
+                inputs, labels = self._move_to_device(
+                    inputs, labels, non_blocking=non_blocking_transfer
+                )
 
                 if isinstance(inputs, tuple) or isinstance(inputs, list):
                     batch_size = inputs[0].size(0)
