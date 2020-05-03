@@ -5,7 +5,7 @@ on:
     branches: [dev/release-action]
   #push:
   #  tags:
-  #    - "v*" # Trigger on push with tags matching v*, i.e. v1.0, v0.1.5
+  #    - "v*.*" # Trigger on push with tags matching v*, i.e. v1.0, v0.1.5
 
 jobs:
   release:
@@ -28,12 +28,10 @@ jobs:
           echo "::set-output name=notes::$notes"
 
       - name: Create Release
-        uses: actions/create-release@latest
+        uses: softprops/action-gh-release@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
           body: |
             Changes in this Release:
             ${{ steps.gen_release_notes.outputs.notes }}
