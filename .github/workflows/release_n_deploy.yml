@@ -14,6 +14,7 @@ jobs:
 
     steps:
       - name: Generate draft release notes
+        uses: actions/checkout@v2
         id: gen_release_notes
         run: |
           notes=$(git log --pretty=format:' -%d%Creset %s' --abbrev-commit)
