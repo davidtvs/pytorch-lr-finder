@@ -25,16 +25,19 @@ jobs:
         run: |
           # Get commit log
           notes=$(git log --pretty=format:' -%d%Creset %s' --abbrev-commit)
+          echo "git log"
           echo "$notes"
           echo ""
 
           # Get commit logs between this tag and the previous one
           notes=$(awk '/tag: v/ { flag=!flag; count+=1; next } flag && count < 2 {print}' <<< "$notes")
+          echo "awk"
           echo "$notes"
           echo ""
 
           # Remove all merge commits for a cleaner log
           notes=$(sed '/Merge pull request #/d' <<< "$notes")
+          echo "sed"
           echo "$notes"
           echo ""
 
