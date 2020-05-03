@@ -1,0 +1,80 @@
+name: release-n-deploy
+
+on:
+  push:
+    tags:
+      - "v*.*" # Trigger on push with tags matching aversion, e.g.: v1.0, v0.1.5
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # We need the whole history so we can later generate the release notes from the commit logs
+      - name: Fetch all history for all tags and branches
+        run: git fetch --prune --unshallow
+
+      # Generate draft release notes by taking the commit logs between  this release and the previous
+      - name: Generate draft release notes
+        id: release_notes
+        run: |
+          # Get the whole commit log with a pretty and easy to post-process format
+          notes="$(git log --pretty=format:' -%d%Creset %s' --abbrev-commit)"
+
+          # Get commit logs between this tag and the previous one
+          notes="$(awk '/tag: v/ { flag=!flag; count+=1; next } flag && count < 2 {print}' <<< "$notes")"
+
+          # Remove all merge commits for a cleaner log
+          notes="$(sed '/Merge pull request #/d' <<< "$notes")"
+
+          # Some weird string replacements to escape special characters...blame GitHub
+          # for this https://github.community/t5/GitHub-Actions/set-output-Truncates-Multiline-Strings/td-p/37870
+          notes="${notes//'%'/'%25'}"
+          notes="${notes//$'\n'/'%0A'}"
+          notes="${notes//$'\r'/'%0D'}"
+
+          echo "::set-output name=content::$notes"
+
+      - name: Create draft release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Release notes:
+            ${{ steps.release_notes.outputs.content }}
+          draft: true
+          prerelease: false
+
+  deploy:
+    name: Deploy to PyPI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel
+
+      - name: Build
+        run: python setup.py sdist bdist_wheel
+
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.1.0
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_password }}
