@@ -28,7 +28,7 @@ jobs:
           echo "::set-output name=notes::$notes"
 
       - name: Create Release
-        uses: softprops/action-gh-release@latest
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
