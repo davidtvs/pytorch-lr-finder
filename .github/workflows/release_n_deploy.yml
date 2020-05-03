@@ -34,7 +34,7 @@ jobs:
           echo ""
 
           # Remove all merge commits for a cleaner log
-          notes=$(echo "$notes" | sed  '/Merge pull request #/d' <<< "$notes")
+          notes=$(sed '/Merge pull request #/d' <<< "$notes")
           echo "$notes"
           echo ""
 
