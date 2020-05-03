@@ -24,32 +24,20 @@ jobs:
       - name: Generate draft release notes
         id: release_notes
         run: |
-          # Get commit log
+          # Get the whole commit log with a pretty and easy to post-process format
           notes="$(git log --pretty=format:' -%d%Creset %s' --abbrev-commit)"
-          echo "git log"
-          echo "$notes"
-          echo ""
 
           # Get commit logs between this tag and the previous one
           notes="$(awk '/tag: v/ { flag=!flag; count+=1; next } flag && count < 2 {print}' <<< "$notes")"
-          echo "awk"
-          echo "$notes"
-          echo ""
 
           # Remove all merge commits for a cleaner log
           notes="$(sed '/Merge pull request #/d' <<< "$notes")"
-          echo "sed"
-          echo "$notes"
-          echo ""
 
           # Some weird string replacements to escape special characters...blame GitHub
           # for this https://github.community/t5/GitHub-Actions/set-output-Truncates-Multiline-Strings/td-p/37870
-          # and yes, this must be done before the first echo otherwise the log gets
           notes="${notes//'%'/'%25'}"
           notes="${notes//$'\n'/'%0A'}"
           notes="${notes//$'\r'/'%0D'}"
-          echo "$notes"
-          echo ""
 
           echo "::set-output name=content::$notes"
 
@@ -65,20 +53,25 @@ jobs:
             ${{ steps.release_notes.outputs.content }}
           draft: true
           prerelease: false
+#
 #  deploy:
 #    name: Deploy to PyPI
-#    runs-on: ubuntu-latest#
+#    runs-on: ubuntu-latest
 #
 #    steps:
-#      - uses: actions/checkout@v2
+#      - name: Checkout repository
+#        uses: actions/checkout@v2
+#
 #      - name: Set up Python
 #        uses: actions/setup-python@v1
 #        with:
 #          python-version: "3.x"
+#
 #      - name: Install dependencies
 #        run: |
 #          python -m pip install --upgrade pip
 #          pip install setuptools wheel twine
+#
 #      - name: Build and publish
 #        env:
 #          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
