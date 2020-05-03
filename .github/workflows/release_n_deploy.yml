@@ -2,10 +2,9 @@ name: release-n-deploy
 
 on:
   push:
-    branches: [dev/release-action]
-  #push:
-  #  tags:
-  #    - "v*.*" # Trigger on push with tags matching v*, i.e. v1.0, v0.1.5
+    tags:
+      #- "v*.*" # Trigger on push with tags matching v*, i.e. v1.0, v0.1.5
+      - "test*"
 
 jobs:
   release:
