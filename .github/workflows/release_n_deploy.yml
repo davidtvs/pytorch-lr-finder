@@ -25,6 +25,18 @@ jobs:
         run: |
           # Get commit log
           notes=$(git log --pretty=format:' -%d%Creset %s' --abbrev-commit)
+          echo "$notes"
+          echo ""
+
+          # Get commit logs between this tag and the previous one
+          notes=$(awk '/tag: v/ { flag=!flag; count+=1; next } flag && count < 2 {print}' <<< "${notes}")
+          echo "$notes"
+          echo ""
+
+          # Remove all merge commits for a cleaner log
+          notes=$(echo "$notes" | sed  '/Merge pull request #/d' <<< "${notes}")
+          echo "$notes"
+          echo ""
 
           # Some weird string replacements to escape special characters...blame GitHub
           # for this https://github.community/t5/GitHub-Actions/set-output-Truncates-Multiline-Strings/td-p/37870
@@ -33,12 +45,7 @@ jobs:
           notes="${notes//$'\n'/'%0A'}"
           notes="${notes//$'\r'/'%0D'}"
           echo "$notes"
-
-          # Get commit logs between this tag and the previous one
-          #notes=$(echo "$notes" | awk '/tag: v/ { flag=!flag; count+=1; next } flag && count < 2 {print}')
-
-          # Remove all merge commits for a cleaner log
-          #notes=$(echo "$notes" | sed  '/Merge pull request #/d')
+          echo ""
 
           echo "::set-output name=content::$notes"
 
