@@ -19,14 +19,8 @@ jobs:
       - name: Generate draft release notes
         id: release_notes
         run: |
-          # Get commit log
-          notes=$(git log --pretty=format:' -%d%Creset %s' --abbrev-commit)
-          # Get the commit log between the two most recent tags/releases
-          notes=$(echo "$notes" | awk '/tag: v/ { flag=!flag; count+=1; next } flag && count < 2 {print}')
-          # Remove the merge commits
-          notes=$(echo "$notes" | sed  '/Merge pull request #/d')
-          echo "$notes"
-          echo "::set-output name=content::$notes"
+          echo "Hello"
+          echo "::set-output name=content::test notes"
 
       - name: Create Release
         uses: actions/create-release@v1
