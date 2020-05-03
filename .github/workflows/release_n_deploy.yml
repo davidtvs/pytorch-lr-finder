@@ -26,17 +26,18 @@ jobs:
           # Get commit log
           notes=$(git log --pretty=format:' -%d%Creset %s' --abbrev-commit)
 
+          # Some weird string replacements to escape special characters...blame GitHub
+          # for this https://github.community/t5/GitHub-Actions/set-output-Truncates-Multiline-Strings/td-p/37870
+          # and yes, this must be done before the first echo otherwise the logs gets truncated
+          notes="${notes//'%'/'%25'}"
+          notes="${notes//$'\n'/'%0A'}"
+          notes="${notes//$'\r'/'%0D'}"
+
           # Get commit logs between this tag and the previous one
           notes=$(echo "$notes" | awk '/tag: v/ { flag=!flag; count+=1; next } flag && count < 2 {print}')
 
           # Remove all merge commits for a cleaner log
           notes=$(echo "$notes" | sed  '/Merge pull request #/d')
-
-          # Some weird string replacements to escape special characters...blame GitHub
-          # for this https://github.community/t5/GitHub-Actions/set-output-Truncates-Multiline-Strings/td-p/37870
-          notes="${notes//'%'/'%25'}"
-          notes="${notes//$'\n'/'%0A'}"
-          notes="${notes//$'\r'/'%0D'}"
 
           echo "::set-output name=content::$notes"
 
