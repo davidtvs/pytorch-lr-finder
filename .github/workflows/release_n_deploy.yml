@@ -1,4 +1,4 @@
-name: release-n-deply
+name: release-n-deploy
 
 on:
   push:
@@ -15,14 +15,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      # Generate draft release notes by taking the commit logs between  this release and the previous
       - name: Generate draft release notes
         id: gen_release_notes
         run: |
+          # Get commit log
           notes=$(git log --pretty=format:' -%d%Creset %s' --abbrev-commit)
-          # Get text 
+          # Get the commit log between the two most recent tags/releases
           notes=$(echo "$notes" | awk '/tag: v/ { flag=!flag; count+=1; next } flag && count < 2 {print}')
-          notes=$(echo "$notes" | sed  '/Merge pull request #/d')ext } flag && count < 2 {print}'
-          notes=echo notes | sed  '/Merge pull request #/d'
+          # Remove the merge commits
+          notes=$(echo "$notes" | sed  '/Merge pull request #/d')
           echo "::set-output name=notes::$notes"
 
       - name: Create Release
@@ -34,7 +36,7 @@ jobs:
           release_name: Release ${{ github.ref }}
           body: |
             Changes in this Release:
-            ${{steps.gen_release_notes.outputs.notes}}
+            ${{ steps.gen_release_notes.outputs.notes }}
           draft: true
           prerelease: false
 #  deploy:
