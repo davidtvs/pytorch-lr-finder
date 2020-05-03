@@ -13,8 +13,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v2
+
       - name: Generate draft release notes
-        uses: actions/checkout@v2
         id: gen_release_notes
         run: |
           notes=$(git log --pretty=format:' -%d%Creset %s' --abbrev-commit)
@@ -23,6 +24,7 @@ jobs:
           notes=$(echo "$notes" | sed  '/Merge pull request #/d')ext } flag && count < 2 {print}'
           notes=echo notes | sed  '/Merge pull request #/d'
           echo "::set-output name=notes::$notes"
+
       - name: Create Release
         uses: actions/create-release@latest
         env:
