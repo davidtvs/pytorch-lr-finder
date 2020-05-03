@@ -2,8 +2,10 @@ name: release-n-deply
 
 on:
   push:
-    tags:
-      - "v*" # Trigger on push with tags matching v*, i.e. v1.0, v0.1.5
+    branches: [dev/release-action]
+  #push:
+  #  tags:
+  #    - "v*" # Trigger on push with tags matching v*, i.e. v1.0, v0.1.5
 
 jobs:
   release:
@@ -11,7 +13,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Generate draft release notes
+      - id: gen_release_notes
+        run: |
+          notes=$(git log --pretty=format:' -%d%Creset %s' --abbrev-commit)
+          # Get text 
+          notes=$(echo "$notes" | awk '/tag: v/ { flag=!flag; count+=1; next } flag && count < 2 {print}')
+          notes=$(echo "$notes" | sed  '/Merge pull request #/d')ext } flag && count < 2 {print}'
+          notes=echo notes | sed  '/Merge pull request #/d'
+          echo "::set-output name=notes::$notes"
       - name: Create Release
         uses: actions/create-release@latest
         env:
@@ -20,28 +30,28 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            Changes in this Release
+            Changes in this Release:
+            ${{steps.gen_release_notes.outputs.notes}}
           draft: true
           prerelease: false
-
-  deploy:
-    name: Deploy to PyPI
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: "3.x"
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install setuptools wheel twine
-      - name: Build and publish
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: |
-          python setup.py sdist bdist_wheel
-          twine upload dist/*
+#  deploy:
+#    name: Deploy to PyPI
+#    runs-on: ubuntu-latest#
+#
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Set up Python
+#        uses: actions/setup-python@v1
+#        with:
+#          python-version: "3.x"
+#      - name: Install dependencies
+#        run: |
+#          python -m pip install --upgrade pip
+#          pip install setuptools wheel twine
+#      - name: Build and publish
+#        env:
+#          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+#          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+#        run: |
+#          python setup.py sdist bdist_wheel
+#          twine upload dist/*
