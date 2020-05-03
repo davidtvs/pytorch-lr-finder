@@ -25,7 +25,7 @@ jobs:
           notes="${notes//$'\n'/'%0A'}"
           notes="${notes//$'\r'/'%0D'}"
           echo "$notes"
-          echo "::set-output name=content::test notes"
+          echo "::set-output name=content::$notes"
 
       - name: Create Release
         uses: actions/create-release@v1
