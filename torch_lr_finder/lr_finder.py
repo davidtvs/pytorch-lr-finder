@@ -22,7 +22,41 @@ except ImportError:
     IS_AMP_AVAILABLE = False
     del logging
 
+class DataLoaderIterWrapper(object):
+    """A wrapper for iterating `torch.utils.data.DataLoader` with the ability to reset
+    itself while `StopIteration` is raised."""
 
+    def __init__(self, data_loader, auto_reset=True):
+        self.data_loader = data_loader
+        self.auto_reset = auto_reset
+        self._iterator = iter(data_loader)
+    
+    def _batch_make_inputs_labels(self, batch_data):
+        
+        if isinstance(batch_data, tuple):
+            return batch_data
+        elif isinstance(batch_data, dict):
+            raise ValueError("Your batch returns dictionary, please inherit from DataLoaderIterWrapper and redefine _batch_make_inputs_labels method. It must return a tuple (xs,ys). Insert new class as a data_loader_wrapper_class parameter in range_test")
+        else:
+            raise ValueError("Your training data is neither tuple nor dict. You can inherit from DataLoaderIterWrapper and redefine _batch_make_inputs_labels method. It must return a tuple (xs,ys). Insert new class as a data_loader_wrapper_class parameter in range_test.")
+
+    def __next__(self):
+        # Get a new set of inputs and labels
+        try:
+            # Orig: inputs, labels, *_ = next(self._iterator)
+            batch_dict = next(self._iterator)
+            inputs, labels = self._batch_make_inputs_labels(batch_dict)
+        except StopIteration:
+            if not self.auto_reset:
+                raise
+            self._iterator = iter(self.data_loader)
+            # Orig: inputs, labels, *_ = next(self._iterator)
+            batch_dict = next(self._iterator)
+            inputs, labels = self._batch_make_inputs_labels(batch_dict)
+            
+        return inputs, labels
+
+    
 class LRFinder(object):
     """Learning rate range test.
 
@@ -109,6 +143,7 @@ class LRFinder(object):
         smooth_f=0.05,
         diverge_th=5,
         accumulation_steps=1,
+        data_loader_wrapper_class=DataLoaderIterWrapper,
     ):
         """Performs the learning rate range test.
 
@@ -133,7 +168,10 @@ class LRFinder(object):
                 threshold:  diverge_th * best_loss. Default: 5.
             accumulation_steps (int, optional): steps for gradient accumulation. If it
                 is 1, gradients are not accumulated. Default: 1.
-
+            data_loader_wrapper_class (class, optional): class which inherits from DataLoaderIterWrapper.
+                it is necessary to provide this parameter if your original dataloader does not return a
+                tuple of (xs,ys) but instead returns e.g. a dictionary. In this case the method 
+                _batch_make_inputs_labels of the new class returns a tuple. Default: DataLoaderIterWrapper
         Example (fastai approach):
             >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
             >>> lr_finder.range_test(dataloader, end_lr=100, num_iter=100)
@@ -182,7 +220,7 @@ class LRFinder(object):
             raise ValueError("smooth_f is outside the range [0, 1[")
 
         # Create an iterator to get data batch by batch
-        iter_wrapper = DataLoaderIterWrapper(train_loader)
+        iter_wrapper = data_loader_wrapper_class(train_loader)
         for iteration in tqdm(range(num_iter)):
             # Train on batch and retrieve loss
             loss = self._train_batch(iter_wrapper, accumulation_steps)
@@ -456,25 +494,3 @@ class StateCacher(object):
         for k in self.cached:
             if os.path.exists(self.cached[k]):
                 os.remove(self.cached[k])
-
-
-class DataLoaderIterWrapper(object):
-    """A wrapper for iterating `torch.utils.data.DataLoader` with the ability to reset
-    itself while `StopIteration` is raised."""
-
-    def __init__(self, data_loader, auto_reset=True):
-        self.data_loader = data_loader
-        self.auto_reset = auto_reset
-        self._iterator = iter(data_loader)
-
-    def __next__(self):
-        # Get a new set of inputs and labels
-        try:
-            inputs, labels, *_ = next(self._iterator)
-        except StopIteration:
-            if not self.auto_reset:
-                raise
-            self._iterator = iter(self.data_loader)
-            inputs, labels, *_ = next(self._iterator)
-
-        return inputs, labels
