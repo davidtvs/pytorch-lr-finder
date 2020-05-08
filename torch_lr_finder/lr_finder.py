@@ -4,6 +4,7 @@ import torch
 from tqdm.autonotebook import tqdm
 from torch.optim.lr_scheduler import _LRScheduler
 import matplotlib.pyplot as plt
+from collections.abc import Iterable
 
 try:
     from apex import amp
@@ -33,7 +34,7 @@ class DataLoaderIterWrapper(object):
     
     def _batch_make_inputs_labels(self, batch_data):
         
-        if isinstance(batch_data, tuple):
+        if isinstance(batch_data, Iterable):
             return batch_data
         elif isinstance(batch_data, dict):
             raise ValueError("Your batch returns dictionary, please inherit from DataLoaderIterWrapper and redefine _batch_make_inputs_labels method. It must return a tuple (xs,ys). Insert new class as a data_loader_wrapper_class parameter in range_test")
