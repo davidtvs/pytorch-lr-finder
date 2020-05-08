@@ -173,7 +173,8 @@ class LRFinder(object):
                 e.g., moving CPU Tensors with pinned memory to CUDA devices. Default: True.
             data_loader_wrapper_class (class, optional): class which inherits from DataLoaderIterWrapper.
                 it is necessary to provide this parameter if your original dataloader does not return a
-                _batch_make_inputs_labels of the new class returns a tuple. Default: DataLoaderIterWrapper
+                tuple (Xs,Ys) but returns e.g. dict. In this case redefine method _batch_make_inputs_labels 
+                of the new class so that it return tuple (Xs, Ys). Default: DataLoaderIterWrapper
                 
         Example (fastai approach):
             >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
@@ -190,7 +191,16 @@ class LRFinder(object):
             >>> dataloader = torch.utils.data.DataLoader(train_data, batch_size=real_bs, shuffle=True)
             >>> acc_lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
             >>> acc_lr_finder.range_test(dataloader, end_lr=10, num_iter=100, accumulation_steps=accumulation_steps)
-
+            
+        If your DataLoader returns dict, or other non standard output, intehit from DataLoaderIterWrapper, 
+        redefine method _batch_make_inputs_labels so that it outputs (Xs, Ys) data:
+            >>> import torch_lr_finder
+            >>> class Wrapper(torch_lr_finder.DataLoaderIterWrapper):
+            >>>     def _batch_make_inputs_labels(self, batch_data):
+            >>>         return (batch_data['user_features'], batch_data['user_history_x'] ), batch_data['y_data']
+            >>> finder = torch_lr_finder.LRFinder(model, optimizer, partial(model._train_loss, need_one_hot=False) )
+            >>> finder.range_test(train_dl, end_lr=10, num_iter=300, diverge_th=10, data_loader_wrapper_class=Wrapper)
+        
         Reference:
         [Training Neural Nets on Larger Batches: Practical Tips for 1-GPU, Multi-GPU & Distributed setups](
         https://medium.com/huggingface/ec88c3e51255)
