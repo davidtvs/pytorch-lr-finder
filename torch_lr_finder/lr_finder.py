@@ -39,21 +39,19 @@ class DataLoaderIterWrapper(object):
         elif isinstance(batch_data, dict):
             raise ValueError("Your batch returns dictionary, please inherit from DataLoaderIterWrapper and redefine _batch_make_inputs_labels method. It must return a tuple (xs,ys). Insert new class as a data_loader_wrapper_class parameter in range_test")
         else:
-            raise ValueError("Your training data is neither tuple nor dict. You can inherit from DataLoaderIterWrapper and redefine _batch_make_inputs_labels method. It must return a tuple (xs,ys). Insert new class as a data_loader_wrapper_class parameter in range_test.")
+            raise ValueError("Your training data is neither Iterable nor dict. You can inherit from DataLoaderIterWrapper and redefine _batch_make_inputs_labels method. It must return a tuple (xs,ys). Insert new class as a data_loader_wrapper_class parameter in range_test.")
 
     def __next__(self):
         # Get a new set of inputs and labels
         try:
-            # Orig: inputs, labels, *_ = next(self._iterator)
             batch_dict = next(self._iterator)
-            inputs, labels = self._batch_make_inputs_labels(batch_dict)
+            inputs, labels, *_ = self._batch_make_inputs_labels(batch_dict)
         except StopIteration:
             if not self.auto_reset:
                 raise
             self._iterator = iter(self.data_loader)
-            # Orig: inputs, labels, *_ = next(self._iterator)
             batch_dict = next(self._iterator)
-            inputs, labels = self._batch_make_inputs_labels(batch_dict)
+            inputs, labels, *_ = self._batch_make_inputs_labels(batch_dict)
             
         return inputs, labels
 
