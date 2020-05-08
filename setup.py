@@ -37,7 +37,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="torch-lr-finder",
-    version="0.1.4",
+    version="0.1.5",
     author="David Silva",
     author_email="davidtvs10@gmail.com",
     description="Pytorch implementation of the learning rate range test",
@@ -54,6 +54,18 @@ setuptools.setup(
         "Topic :: Software Development",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
-    python_requires=">=3",
+    python_requires=">=3.5.9",
     install_requires=["matplotlib", "numpy", "torch>=0.4.1", "tqdm"],
+    extras_require={
+        "tests": ["pytest", "pytest-cov"],
+        "dev": [
+            "pytest",
+            "pytest-cov",
+            "flake8",
+            "black",
+            "pep8-naming",
+            "torchvision",
+            "ipywidgets",
+        ],
+    },
 )

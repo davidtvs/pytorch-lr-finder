@@ -5,8 +5,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Subset
 import pytest
 
-from .model import LinearMLP
-from .dataset import XORDataset, ExtraXORDataset
+from model import LinearMLP
+from dataset import XORDataset, ExtraXORDataset
 
 
 def use_cuda():

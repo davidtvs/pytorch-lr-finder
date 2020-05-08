@@ -1,5 +1,9 @@
 # PyTorch learning rate finder
 
+![](https://github.com/davidtvs/pytorch-lr-finder/workflows/ci-build/badge.svg?branch=master)
+[![codecov](https://codecov.io/gh/davidtvs/pytorch-lr-finder/branch/master/graph/badge.svg)](https://codecov.io/gh/davidtvs/pytorch-lr-finder)
+[![](https://img.shields.io/pypi/v/torch-lr-finder)](https://pypi.org/project/torch-lr-finder/)
+
 A PyTorch implementation of the learning rate range test detailed in [Cyclical Learning Rates for Training Neural Networks](https://arxiv.org/abs/1506.01186) by Leslie N. Smith and the tweaked version used by [fastai](https://github.com/fastai/fastai).
 
 The learning rate range test is a test that provides valuable information about the optimal learning rate. During a pre-training run, the learning rate is increased linearly or exponentially between two boundaries. The low initial learning rate allows the network to start converging and as the learning rate is increased it will eventually be too large and the network will diverge.
@@ -12,7 +16,7 @@ For cyclical learning rates (also detailed in Leslie Smith's paper) where the le
 
 ## Installation
 
-Python 3:
+Python 3.5 and above:
 
 ```bash
 pip install torch-lr-finder
@@ -116,3 +120,7 @@ lr_finder.reset()
 Note that the benefit of mixed precision training requires a nvidia GPU with tensor cores (see also: [NVIDIA/apex #297](https://github.com/NVIDIA/apex/issues/297))
 
 Besides, you can try to set `torch.backends.cudnn.benchmark = True` to improve the training speed. (but it won't work for some cases, you should use it at your own risk)
+
+## Contributing and pull requests
+
+All contributions are welcome but first, have a look at [CONTRIBUTING.md](CONTRIBUTING.md).
