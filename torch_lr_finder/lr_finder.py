@@ -195,9 +195,7 @@ class LRFinder(object):
                 non_blocking_transfer=non_blocking_transfer,
             )
             if val_loader:
-                loss = self._validate(
-                    val_loader, non_blocking_transfer=non_blocking_transfer
-                )
+                loss = self._validate(val_loader, non_blocking_transfer=non_blocking_transfer)
 
             # Update the learning rate
             lr_schedule.step()
