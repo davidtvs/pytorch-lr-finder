@@ -1,7 +1,7 @@
 # See documentation of Slash Command Dispatch at: https://github.com/peter-evans/slash-command-dispatch
 # Blog page with step by step instructions on setting it up: https://peterevans.dev/posts/chatops-for-github-actions/#command-processing-setup
 
-name: Slash Command Dispatch
+name: slash-command-dispatch
 
 on:
   issue_comment:
