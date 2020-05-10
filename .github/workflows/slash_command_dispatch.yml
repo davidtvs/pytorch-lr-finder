@@ -1,0 +1,18 @@
+# See documentation of Slash Command Dispatch at: https://github.com/peter-evans/slash-command-dispatch
+# Blog page with step by step instructions on setting it up: https://peterevans.dev/posts/chatops-for-github-actions/#command-processing-setup
+
+name: slash-command-dispatch
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  slash-command-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Slash Command Dispatch
+        uses: peter-evans/slash-command-dispatch@v1
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          commands: flake8-lint, black-check
