@@ -5,6 +5,7 @@ from tqdm.autonotebook import tqdm
 from torch.optim.lr_scheduler import _LRScheduler
 import matplotlib.pyplot as plt
 from collections.abc import Iterable
+from torch.utils.data import DataLoader
 
 try:
     from apex import amp
@@ -23,39 +24,53 @@ except ImportError:
     IS_AMP_AVAILABLE = False
     del logging
 
-class DataLoaderIterWrapper(object):
-    """A wrapper for iterating `torch.utils.data.DataLoader` with the ability to reset
-    itself while `StopIteration` is raised."""
-
-    def __init__(self, data_loader, auto_reset=True):
+    
+class DataLoaderIter(object):
+    def __init__(self, data_loader):
         self.data_loader = data_loader
-        self.auto_reset = auto_reset
         self._iterator = iter(data_loader)
     
-    def _batch_make_inputs_labels(self, batch_data):
-        
-        if isinstance(batch_data, Iterable):
-            return batch_data
-        elif isinstance(batch_data, dict):
-            raise ValueError("Your batch returns dictionary, please inherit from DataLoaderIterWrapper and redefine _batch_make_inputs_labels method. It must return a tuple (xs,ys). Insert new class as a data_loader_wrapper_class parameter in range_test")
-        else:
-            raise ValueError("Your training data is neither Iterable nor dict. You can inherit from DataLoaderIterWrapper and redefine _batch_make_inputs_labels method. It must return a tuple (xs,ys). Insert new class as a data_loader_wrapper_class parameter in range_test.")
+    @property
+    def dataset(self):
+        return self.data_loader.dataset
+    
+    def inputs_labels_from_batch(self, batch_data):
+        if not isinstance(batch_data, Iterable):
+            raise ValueError("Your batch returns not Iterable. Please inherit from TrainDataLoaderIter or ValDataLoaderIter and redefine _batch_make_inputs_labels method.")
+            
+        inputs, labels, *_ = batch_data
 
+        return inputs, labels
+    def __iter__(self):
+        return self
+    
     def __next__(self):
-        # Get a new set of inputs and labels
+        batch = next(self._iterator)
+        return self.inputs_labels_from_batch(batch)
+    
+class TrainDataLoaderIter(DataLoaderIter):
+    def __init__(self, data_loader, auto_reset=True):
+        #super(TrainDataLoaderIter, self).__init__(data_loader)
+        #import pdb; pdb.set_trace()
+        super().__init__(data_loader)
+        self.auto_reset = auto_reset
+        
+    def __next__(self):
         try:
-            batch_dict = next(self._iterator)
-            inputs, labels, *_ = self._batch_make_inputs_labels(batch_dict)
+            batch = next(self._iterator)
+            inputs, labels, *_ = self.inputs_labels_from_batch(batch)
         except StopIteration:
             if not self.auto_reset:
                 raise
             self._iterator = iter(self.data_loader)
-            batch_dict = next(self._iterator)
-            inputs, labels, *_ = self._batch_make_inputs_labels(batch_dict)
-            
-        return inputs, labels
+            batch = next(self._iterator)
+            inputs, labels = self.inputs_labels_from_batch(batch)
 
+        return inputs, labels
     
+class ValDataLoaderIter(DataLoaderIter):
+    pass
+
 class LRFinder(object):
     """Learning rate range test.
 
@@ -142,17 +157,22 @@ class LRFinder(object):
         smooth_f=0.05,
         diverge_th=5,
         accumulation_steps=1,
-        non_blocking_transfer=True,
-        data_loader_wrapper_class=DataLoaderIterWrapper):
+        non_blocking_transfer=True):
         """Performs the learning rate range test.
 
         Arguments:
-            train_loader (torch.utils.data.DataLoader): the training set data laoder.
-            val_loader (torch.utils.data.DataLoader, optional): if `None` the range test
+            train_loader (torch.utils.data.DataLoader or child of TrainDataLoaderIter, optional): the training set data loader.
+                If your dataset (data loader) returns a tuple (inputs, labels,*) then Pytorch data loader object can be provided.
+                However, if a dataset returns different outputs e.g. dicts, then you should inherit from TrainDataLoaderIter
+                class and redefine `inputs_labels_from_batch` method so that it outputs (inputs, labels).     
+            val_loader (torch.utils.data.DataLoader or child of ValDataLoaderIter, optional): if `None` the range test
                 will only use the training loss. When given a data loader, the model is
                 evaluated after each iteration on that dataset and the evaluation loss
                 is used. Note that in this mode the test takes significantly longer but
-                generally produces more precise results. Default: None.
+                generally produces more precise results. 
+                Similarly to `train_loader`, if your dataset outputs are not standard you should inherit 
+                from TrainDataLoaderIter class and redefine method `inputs_labels_from_batch` so that 
+                it outputs (inputs, labels). Default: None.
             start_lr (float, optional): the starting learning rate for the range test.
                 Default: None (uses the learning rate from the optimizer).
             end_lr (float, optional): the maximum learning rate to test. Default: 10.
@@ -170,10 +190,6 @@ class LRFinder(object):
             non_blocking_transfer (bool, optional): when non_blocking_transfer is set,
                 tries to convert/move data to the device asynchronously if possible,
                 e.g., moving CPU Tensors with pinned memory to CUDA devices. Default: True.
-            data_loader_wrapper_class (class, optional): class which inherits from DataLoaderIterWrapper.
-                it is necessary to provide this parameter if your original dataloader does not return a
-                tuple (Xs,Ys) but returns e.g. dict. In this case redefine method _batch_make_inputs_labels 
-                of the new class so that it return tuple (Xs, Ys). Default: DataLoaderIterWrapper
                 
         Example (fastai approach):
             >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
@@ -191,14 +207,15 @@ class LRFinder(object):
             >>> acc_lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
             >>> acc_lr_finder.range_test(dataloader, end_lr=10, num_iter=100, accumulation_steps=accumulation_steps)
             
-        If your DataLoader returns dict, or other non standard output, intehit from DataLoaderIterWrapper, 
-        redefine method _batch_make_inputs_labels so that it outputs (Xs, Ys) data:
+        If your DataLoader returns e.g. dict, or other non standard output, intehit from TrainDataLoaderIter, 
+        redefine method `inputs_labels_from_batch` so that it outputs (inputs, lables) data:
             >>> import torch_lr_finder
-            >>> class Wrapper(torch_lr_finder.DataLoaderIterWrapper):
-            >>>     def _batch_make_inputs_labels(self, batch_data):
-            >>>         return (batch_data['user_features'], batch_data['user_history_x'] ), batch_data['y_data']
+            >>> class TrainIter(torch_lr_finder.TrainDataLoaderIter):
+            >>>     def batch_make_inputs_labels(self, batch_data):
+            >>>         return (batch_data['user_features'], batch_data['user_history'] ), batch_data['y_labels']
+            >>> train_data_iter = TrainIter(train_dl)
             >>> finder = torch_lr_finder.LRFinder(model, optimizer, partial(model._train_loss, need_one_hot=False) )
-            >>> finder.range_test(train_dl, end_lr=10, num_iter=300, diverge_th=10, data_loader_wrapper_class=Wrapper)
+            >>> finder.range_test(train_data_iter, end_lr=10, num_iter=300, diverge_th=10)
         
         Reference:
         [Training Neural Nets on Larger Batches: Practical Tips for 1-GPU, Multi-GPU & Distributed setups](
@@ -232,17 +249,31 @@ class LRFinder(object):
             raise ValueError("smooth_f is outside the range [0, 1[")
 
         # Create an iterator to get data batch by batch
-        iter_wrapper = data_loader_wrapper_class(train_loader)
+        if isinstance(train_loader, DataLoader):
+            train_iter = TrainDataLoaderIter(train_loader)
+        elif isinstance(train_loader, TrainDataLoaderIter):
+            train_iter = train_loader
+        else:
+            raise ValueError("`train_loader` has unsupported type: {}".format(type(train_loader)))
+        
+        if val_loader:
+            if isinstance(val_loader, DataLoader):
+                val_iter = ValDataLoaderIter(val_loader)
+            elif isinstance(val_loader, ValDataLoaderIter):
+                val_iter = val_loader
+            else:
+                raise ValueError("`val_loader` has unsupported type: {}".format(type(val_loader)))
+            
         for iteration in tqdm(range(num_iter)):
             # Train on batch and retrieve loss
             loss = self._train_batch(
-                iter_wrapper,
+                train_iter,
                 accumulation_steps,
                 non_blocking_transfer=non_blocking_transfer,
             )
             if val_loader:
                 loss = self._validate(
-                    val_loader, non_blocking_transfer=non_blocking_transfer
+                    val_iter, non_blocking_transfer=non_blocking_transfer
                 )
 
             # Update the learning rate
@@ -284,14 +315,14 @@ class LRFinder(object):
                 raise RuntimeError("Optimizer already has a scheduler attached to it")
 
     def _train_batch(
-        self, iter_wrapper, accumulation_steps, non_blocking_transfer=True
+        self, train_iter, accumulation_steps, non_blocking_transfer=True
     ):
         self.model.train()
         total_loss = None  # for late initialization
 
         self.optimizer.zero_grad()
         for i in range(accumulation_steps):
-            inputs, labels = next(iter_wrapper)
+            inputs, labels = next(train_iter)
             inputs, labels = self._move_to_device(
                 inputs, labels, non_blocking=non_blocking_transfer
             )
@@ -347,7 +378,7 @@ class LRFinder(object):
         running_loss = 0
         self.model.eval()
         with torch.no_grad():
-            for inputs, labels, *_ in dataloader:
+            for inputs, labels in dataloader:
                 # Move data to the correct device
                 inputs, labels = self._move_to_device(
                     inputs, labels, non_blocking=non_blocking_transfer
