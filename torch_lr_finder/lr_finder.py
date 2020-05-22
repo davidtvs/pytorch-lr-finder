@@ -291,8 +291,8 @@ class LRFinder(object):
                 )
 
             # Update the learning rate
-            lr_schedule.step()
             self.history["lr"].append(lr_schedule.get_lr()[0])
+            lr_schedule.step()
 
             # Track the best loss and smooth it if smooth_f is specified
             if iteration == 0:
@@ -510,8 +510,12 @@ class ExponentialLR(_LRScheduler):
         super(ExponentialLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
-        curr_iter = self.last_epoch + 1
-        r = curr_iter / self.num_iter
+        # Works with PyTorch v[0.4.1, 1.4.0[
+        # curr_iter = self.last_epoch + 1
+        # r = curr_iter / (self.num_iter - 1)
+
+        # Works with PyTorch v1.4.0+
+        r = self.last_epoch / (self.num_iter - 1)
         return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
 
 

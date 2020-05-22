@@ -63,7 +63,7 @@ class XORTask(BaseTask):
 
         self.batch_size = bs
         self.model = LinearMLP([8, 4, 1])
-        self.optimizer = optim.SGD(self.model.parameters(), lr=1e-3)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=1e-5)
         self.criterion = nn.MSELoss()
         self.device = torch.device("cuda")
 
@@ -81,7 +81,7 @@ class ExtraXORTask(BaseTask):
             self.val_loader = None
 
         self.model = LinearMLP([8, 4, 1])
-        self.optimizer = optim.SGD(self.model.parameters(), lr=1e-3)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=1e-5)
         self.criterion = nn.MSELoss()
         self.device = torch.device("cuda")
 
@@ -102,10 +102,10 @@ class DiscriminativeLearningRateTask(BaseTask):
         self.model = LinearMLP([8, 4, 1])
         self.optimizer = optim.SGD(
             [
-                {"params": self.model.net[0].parameters(), "lr": 0.01},
-                {"params": self.model.net[1].parameters(), "lr": 0.001},
+                {"params": self.model.net[0].parameters(), "lr": 1e-3},
+                {"params": self.model.net[1].parameters(), "lr": 1e-5},
             ],
-            lr=1e-3,
+            lr=1e-5,
             momentum=0.5,
         )
         self.criterion = nn.MSELoss()
