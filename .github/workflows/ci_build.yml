@@ -48,7 +48,7 @@ jobs:
           pytest --cov=torch_lr_finder --cov-report=xml tests/
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == 3.8 && matrix.pytorch-version == 1.5.0
+        if: matrix.python-version == 3.8 && matrix.pytorch-version == '1.5.0'
         uses: codecov/codecov-action@v1
         with:
           file: ./coverage.xml
