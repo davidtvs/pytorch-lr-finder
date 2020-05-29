@@ -23,7 +23,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Caching dependencies
-      - uses: actions/cache@v2
+        uses: actions/cache@v2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-py-${{ matrix.python-version }}-pytorch-${{ matrix.pytorch-version }}-pip-${{ hashFiles('**/setup.py') }}
