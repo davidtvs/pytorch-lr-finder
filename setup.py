@@ -55,7 +55,7 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
     python_requires=">=3.5.9",
-    install_requires=["matplotlib", "numpy", "torch>=0.4.1", "tqdm"],
+    install_requires=["matplotlib", "numpy", "torch>=0.4.1", "tqdm", "packaging"],
     extras_require={
         "tests": ["pytest", "pytest-cov"],
         "dev": [

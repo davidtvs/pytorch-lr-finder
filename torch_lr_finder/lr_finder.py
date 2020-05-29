@@ -6,6 +6,9 @@ from torch.optim.lr_scheduler import _LRScheduler
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 
+from packaging import version
+
+PYTORCH_VERSION = version.parse(torch.__version__)
 
 try:
     from apex import amp
@@ -161,7 +164,8 @@ class LRFinder(object):
         smooth_f=0.05,
         diverge_th=5,
         accumulation_steps=1,
-        non_blocking_transfer=True):
+        non_blocking_transfer=True
+    ):
         """Performs the learning rate range test.
 
         Arguments:
@@ -488,8 +492,15 @@ class LinearLR(_LRScheduler):
         super(LinearLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
-        curr_iter = self.last_epoch + 1
-        r = curr_iter / self.num_iter
+        # In earlier Pytorch versions last_epoch starts at -1, while in recent versions
+        # it starts at 0. We need to adjust the math a bit to handle this. See
+        # discussion at: https://github.com/davidtvs/pytorch-lr-finder/pull/42
+        if PYTORCH_VERSION < version.parse("1.1.0"):
+            curr_iter = self.last_epoch + 1
+            r = curr_iter / (self.num_iter - 1)
+        else:
+            r = self.last_epoch / (self.num_iter - 1)
+
         return [base_lr + r * (self.end_lr - base_lr) for base_lr in self.base_lrs]
 
 
@@ -510,12 +521,15 @@ class ExponentialLR(_LRScheduler):
         super(ExponentialLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
-        # Works with PyTorch v[0.4.1, 1.4.0[
-        # curr_iter = self.last_epoch + 1
-        # r = curr_iter / (self.num_iter - 1)
+        # In earlier Pytorch versions last_epoch starts at -1, while in recent versions
+        # it starts at 0. We need to adjust the math a bit to handle this. See
+        # discussion at: https://github.com/davidtvs/pytorch-lr-finder/pull/42
+        if PYTORCH_VERSION < version.parse("1.1.0"):
+            curr_iter = self.last_epoch + 1
+            r = curr_iter / (self.num_iter - 1)
+        else:
+            r = self.last_epoch / (self.num_iter - 1)
 
-        # Works with PyTorch v1.4.0+
-        r = self.last_epoch / (self.num_iter - 1)
         return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
 
 
