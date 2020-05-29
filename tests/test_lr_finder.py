@@ -68,21 +68,35 @@ class TestReset:
         assert init_lrs == restored_lrs
 
 
-def test_linear_lr_history():
+class TestLRHistory:
+    def test_linear_lr_history(self):
+        task = mod_task.XORTask()
+        # prepare_lr_finder sets the starting lr to 1e-5
+        lr_finder = prepare_lr_finder(task)
+        lr_finder.range_test(
+            task.train_loader, num_iter=5, step_mode="linear", end_lr=5e-5
+        )
+
+        assert len(lr_finder.history["lr"]) == 5
+        assert lr_finder.history["lr"] == pytest.approx([1e-5, 2e-5, 3e-5, 4e-5, 5e-5])
+
+    def test_exponential_lr_history(self):
+        task = mod_task.XORTask()
+        # prepare_lr_finder sets the starting lr to 1e-5
+        lr_finder = prepare_lr_finder(task)
+        lr_finder.range_test(task.train_loader, num_iter=5, step_mode="exp", end_lr=0.1)
+
+        assert len(lr_finder.history["lr"]) == 5
+        assert lr_finder.history["lr"] == pytest.approx([1e-5, 1e-4, 1e-3, 1e-2, 0.1])
+
+
+@pytest.mark.parametrize("num_iter", [0, 1])
+@pytest.mark.parametrize("scheduler", ["exp", "linear"])
+def test_scheduler_and_num_iter(num_iter, scheduler):
     task = mod_task.XORTask()
     # prepare_lr_finder sets the starting lr to 1e-5
     lr_finder = prepare_lr_finder(task)
-    lr_finder.range_test(task.train_loader, num_iter=5, step_mode="linear", end_lr=5e-5)
-
-    assert len(lr_finder.history["lr"]) == 5
-    assert lr_finder.history["lr"] == pytest.approx([1e-5, 2e-5, 3e-5, 4e-5, 5e-5])
-
-
-def test_exponential_lr_history():
-    task = mod_task.XORTask()
-    # prepare_lr_finder sets the starting lr to 1e-5
-    lr_finder = prepare_lr_finder(task)
-    lr_finder.range_test(task.train_loader, num_iter=5, step_mode="exp", end_lr=0.1)
-
-    assert len(lr_finder.history["lr"]) == 5
-    assert lr_finder.history["lr"] == pytest.approx([1e-5, 1e-4, 1e-3, 1e-2, 0.1])
+    with pytest.raises(ValueError, match="num_iter"):
+        lr_finder.range_test(
+            task.train_loader, num_iter=num_iter, step_mode=scheduler, end_lr=5e-5
+        )

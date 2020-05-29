@@ -488,7 +488,11 @@ class LinearLR(_LRScheduler):
 
     def __init__(self, optimizer, end_lr, num_iter, last_epoch=-1):
         self.end_lr = end_lr
+
+        if num_iter <= 1:
+            raise ValueError("`num_iter` must be larger than 1")
         self.num_iter = num_iter
+
         super(LinearLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
@@ -517,7 +521,11 @@ class ExponentialLR(_LRScheduler):
 
     def __init__(self, optimizer, end_lr, num_iter, last_epoch=-1):
         self.end_lr = end_lr
+
+        if num_iter <= 1:
+            raise ValueError("`num_iter` must be larger than 1")
         self.num_iter = num_iter
+
         super(ExponentialLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
