@@ -1,4 +1,8 @@
 import pytest
+import random
+import os
+import numpy as np
+import torch
 
 
 class CustomCommandLineOption(object):
@@ -37,5 +41,16 @@ def pytest_addoption(parser):
 def pytest_configure(config):
     # Bind a config object to `pytest` module instance
     pytest.custom_cmdopt = CustomCommandLineOption()
-
     pytest.custom_cmdopt.add("cpu_only", config.getoption("--cpu_only"))
+
+    # Set the random seed so that the tests are reproducible between test runs and
+    # hopefully torch and numpy versions. This seed should also allow all range tests
+    # with a starting lr of 1e-5 and an ending lr of 1e-1 to run the full test without
+    # diverging
+    seed = 1
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True

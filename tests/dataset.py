@@ -15,9 +15,9 @@ class XORDataset(Dataset):
         _shape = (length,) + tuple(shape) if shape else (length, 8)
         raw = np.random.randint(0, 2, _shape)
         self.data = torch.FloatTensor(raw)
-        self.label = (
-            torch.tensor(np.bitwise_xor.reduce(raw, axis=1)).unsqueeze(dim=1).float()
-        )
+
+        label = np.bitwise_xor.reduce(raw, axis=1)
+        self.label = torch.tensor(label, dtype=torch.float32).unsqueeze(dim=1)
 
     def __getitem__(self, index):
         return self.data[index], self.label[index]
