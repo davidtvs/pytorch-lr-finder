@@ -1,6 +1,7 @@
 import copy
 import os
 import torch
+import numpy as np
 from tqdm.autonotebook import tqdm
 from torch.optim.lr_scheduler import _LRScheduler
 import matplotlib.pyplot as plt
@@ -414,7 +415,7 @@ class LRFinder(object):
 
         return running_loss / len(val_iter.dataset)
 
-    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None, ax=None):
+    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None, ax=None, suggestion=False):
         """Plots the learning rate range test.
 
         Arguments:
@@ -430,6 +431,8 @@ class LRFinder(object):
                 matplotlib axes object and the figure is not be shown. If `None`, then
                 the figure and axes object are created in this method and the figure is
                 shown . Default: None.
+            suggestion (bool, optional): True to plot the point with the steepest gardient,
+                you can use that point as a first guess for an LR. Default: False.
 
         Returns:
             The matplotlib.axes.Axes object that contains the plot.
@@ -460,6 +463,19 @@ class LRFinder(object):
 
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
+
+        # Plot the suggested LR in a one-time loop
+        while suggestion:
+            try: 
+                mg = (np.gradient(np.array(losses))).argmin()
+            except:
+                print("Failed to compute the gradients, there might not be enough points.")
+                break
+
+            print(f"Min numerical gradient: {lrs[mg]:.2E}")
+            ax.plot(lrs[mg], losses[mg], markersize=10, marker='o', color='red')
+            break
+
         if log_lr:
             ax.set_xscale("log")
         ax.set_xlabel("Learning rate")
