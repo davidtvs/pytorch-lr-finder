@@ -48,6 +48,8 @@ class BaseTask(metaclass=TaskTemplate):
         elif not isinstance(self.device, torch.device):
             raise TypeError("Invalid type of device.")
 
+        self.model.to(self.device)
+
 
 class XORTask(BaseTask):
     def __init__(self, batch_size=8, steps=100, validate=False):
