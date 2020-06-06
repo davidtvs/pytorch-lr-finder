@@ -50,18 +50,25 @@ class BaseTask(metaclass=TaskTemplate):
 
 
 class XORTask(BaseTask):
-    def __init__(self, validate=False):
+    def __init__(self, batch_size=8, steps=100, validate=False):
         super(XORTask, self).__init__()
-        bs, steps = 8, 64
-        dataset = XORDataset(bs * steps)
+        n_total = batch_size * steps
+        dataset = XORDataset(n_total)
         if validate:
-            self.train_loader = DataLoader(Subset(dataset, range(steps - bs)))
-            self.val_loader = DataLoader(Subset(dataset, range(steps - bs, steps)))
+            n_train = int(n_total * 0.9)
+            self.train_loader = DataLoader(
+                Subset(dataset, range(n_train)),
+                batch_size=batch_size
+            )
+            self.val_loader = DataLoader(
+                Subset(dataset, range(n_train, n_total)),
+                batch_size=batch_size
+            )
         else:
-            self.train_loader = DataLoader(dataset)
+            self.train_loader = DataLoader(dataset, batch_size=batch_size)
             self.val_loader = None
 
-        self.batch_size = bs
+        self.batch_size = batch_size
         self.model = LinearMLP([8, 4, 1])
         self.optimizer = optim.SGD(self.model.parameters(), lr=1e-5)
         self.criterion = nn.MSELoss()
@@ -69,17 +76,25 @@ class XORTask(BaseTask):
 
 
 class ExtraXORTask(BaseTask):
-    def __init__(self, validate=False):
+    def __init__(self, batch_size=8, steps=100, validate=False):
         super(ExtraXORTask, self).__init__()
-        bs, steps = 8, 64
-        dataset = ExtraXORDataset(bs * steps, extra_dims=2)
+        n_total = batch_size * steps
+        dataset = ExtraXORDataset(n_total, extra_dims=2)
         if validate:
-            self.train_loader = DataLoader(Subset(dataset, range(steps - bs)))
-            self.val_loader = DataLoader(Subset(dataset, range(steps - bs, steps)))
+            n_train = int(n_total * 0.9)
+            self.train_loader = DataLoader(
+                Subset(dataset, range(n_train)),
+                batch_size=batch_size
+            )
+            self.val_loader = DataLoader(
+                Subset(dataset, range(n_train, n_total)),
+                batch_size=batch_size
+            )
         else:
-            self.train_loader = DataLoader(dataset)
+            self.train_loader = DataLoader(dataset, batch_size=batch_size)
             self.val_loader = None
 
+        self.batch_size = batch_size
         self.model = LinearMLP([8, 4, 1])
         self.optimizer = optim.SGD(self.model.parameters(), lr=1e-5)
         self.criterion = nn.MSELoss()
@@ -87,18 +102,25 @@ class ExtraXORTask(BaseTask):
 
 
 class DiscriminativeLearningRateTask(BaseTask):
-    def __init__(self, validate=False):
+    def __init__(self, batch_size=8, steps=100, validate=False):
         super(DiscriminativeLearningRateTask, self).__init__()
-        bs, steps = 8, 64
-        dataset = XORDataset(bs * steps)
+        n_total = batch_size * steps
+        dataset = XORDataset(n_total)
         if validate:
-            self.train_loader = DataLoader(Subset(dataset, range(steps - bs)))
-            self.val_loader = DataLoader(Subset(dataset, range(steps - bs, steps)))
+            n_train = int(n_total * 0.9)
+            self.train_loader = DataLoader(
+                Subset(dataset, range(n_train)),
+                batch_size=batch_size
+            )
+            self.val_loader = DataLoader(
+                Subset(dataset, range(n_train, n_total)),
+                batch_size=batch_size
+            )
         else:
-            self.train_loader = DataLoader(dataset)
+            self.train_loader = DataLoader(dataset, batch_size=batch_size)
             self.val_loader = None
 
-        dataset = XORDataset(128)
+        self.batch_size = batch_size
         self.model = LinearMLP([8, 4, 1])
         self.optimizer = optim.SGD(
             [
