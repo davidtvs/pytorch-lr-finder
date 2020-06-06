@@ -61,6 +61,7 @@ setuptools.setup(
         "dev": [
             "pytest",
             "pytest-cov",
+            "pytest-mock",
             "flake8",
             "black",
             "pep8-naming",
