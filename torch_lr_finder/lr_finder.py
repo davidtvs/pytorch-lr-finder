@@ -29,9 +29,11 @@ class DataLoaderIter(object):
 
     def inputs_labels_from_batch(self, batch_data):
         if not isinstance(batch_data, list) and not isinstance(batch_data, tuple):
-            raise ValueError("""Your batch type not supported: {}. Please inherit from `TrainDataLoaderIter`
-                (or `ValDataLoaderIter`) and redefine
-                `_batch_make_inputs_labels` method.""".format(type(batch_data)))
+            raise ValueError(
+                "Your batch type not supported: {}. Please inherit from "
+                "`TrainDataLoaderIter` (or `ValDataLoaderIter`) and redefine "
+                "`_batch_make_inputs_labels` method.".format(type(batch_data))
+            )
 
         inputs, labels, *_ = batch_data
 
@@ -154,7 +156,7 @@ class LRFinder(object):
         smooth_f=0.05,
         diverge_th=5,
         accumulation_steps=1,
-        non_blocking_transfer=True
+        non_blocking_transfer=True,
     ):
         """Performs the learning rate range test.
 
@@ -215,10 +217,10 @@ class LRFinder(object):
         redefine method `inputs_labels_from_batch` so that it outputs (inputs, lables) data:
             >>> import torch_lr_finder
             >>> class TrainIter(torch_lr_finder.TrainDataLoaderIter):
-            >>>     def batch_make_inputs_labels(self, batch_data):
-            >>>         return (batch_data['user_features'], batch_data['user_history'] ), batch_data['y_labels']
+            >>>     def inputs_labels_from_batch(self, batch_data):
+            >>>         return (batch_data['user_features'], batch_data['user_history']), batch_data['y_labels']
             >>> train_data_iter = TrainIter(train_dl)
-            >>> finder = torch_lr_finder.LRFinder(model, optimizer, partial(model._train_loss, need_one_hot=False) )
+            >>> finder = torch_lr_finder.LRFinder(model, optimizer, partial(model._train_loss, need_one_hot=False))
             >>> finder.range_test(train_data_iter, end_lr=10, num_iter=300, diverge_th=10)
 
         Reference:
@@ -258,9 +260,11 @@ class LRFinder(object):
         elif isinstance(train_loader, TrainDataLoaderIter):
             train_iter = train_loader
         else:
-            raise ValueError("""`train_loader` has unsupported type: {}.
-                Expected types are `torch.utils.data.DataLoader`
-                or child of `TrainDataLoaderIter`.""".format(type(train_loader)))
+            raise ValueError(
+                "`train_loader` has unsupported type: {}."
+                "Expected types are `torch.utils.data.DataLoader`"
+                "or child of `TrainDataLoaderIter`.".format(type(train_loader))
+            )
 
         if val_loader:
             if isinstance(val_loader, DataLoader):
@@ -268,9 +272,11 @@ class LRFinder(object):
             elif isinstance(val_loader, ValDataLoaderIter):
                 val_iter = val_loader
             else:
-                raise ValueError("""`val_loader` has unsupported type: {}.
-                    Expected types are `torch.utils.data.DataLoader`
-                    or child of `ValDataLoaderIter`.""".format(type(val_loader)))
+                raise ValueError(
+                    "`val_loader` has unsupported type: {}."
+                    "Expected types are `torch.utils.data.DataLoader`"
+                    "or child of `ValDataLoaderIter`.".format(type(val_loader))
+                )
 
         for iteration in tqdm(range(num_iter)):
             # Train on batch and retrieve loss
@@ -322,9 +328,7 @@ class LRFinder(object):
             if "initial_lr" in param_group:
                 raise RuntimeError("Optimizer already has a scheduler attached to it")
 
-    def _train_batch(
-        self, train_iter, accumulation_steps, non_blocking_transfer=True
-    ):
+    def _train_batch(self, train_iter, accumulation_steps, non_blocking_transfer=True):
         self.model.train()
         total_loss = None  # for late initialization
 

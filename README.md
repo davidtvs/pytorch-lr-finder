@@ -70,6 +70,7 @@ lr_finder.reset()
 - `LRFinder.range_test()` will change the model weights and the optimizer parameters. Both can be restored to their initial state with `LRFinder.reset()`.
 - The learning rate and loss history can be accessed through `lr_finder.history`. This will return a dictionary with `lr` and `loss` keys.
 - When using `step_mode="linear"` the learning rate range should be within the same order of magnitude.
+- `LRFinder.range_test()` expects a pair of `input, label` to be returned from the `DataLoader` objects passed to it. The `input` must be ready to be passed to the model and the `label` must be ready to be passed to the `criterion` without any further data processing/handling/conversion. If you find yourself needing a workaround you can make use of the classes `TrainDataLoaderIter` and `ValDataLoaderIter` to perform any data processing/handling/conversion inbetween the `DataLoader` and the training/evaluation loop. You can find an example of how to use these classes in [examples/lrfinder_cifar10_dataloader_iter](examples/lrfinder_cifar10_dataloader_iter.ipynb).
 
 ## Additional support for training
 
