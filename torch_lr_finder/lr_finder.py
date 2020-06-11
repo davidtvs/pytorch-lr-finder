@@ -415,7 +415,7 @@ class LRFinder(object):
 
         return running_loss / len(val_iter.dataset)
 
-    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None, ax=None, suggestion=False):
+    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None, ax=None, suggest_lr=False):
         """Plots the learning rate range test.
 
         Arguments:
@@ -431,7 +431,8 @@ class LRFinder(object):
                 matplotlib axes object and the figure is not be shown. If `None`, then
                 the figure and axes object are created in this method and the figure is
                 shown . Default: None.
-            suggestion (bool, optional): True to plot the point with the steepest gardient,
+            suggest_lr (bool, optional): suggest a learning rate by
+                - 'steepest': the point with steepest gradient (minimal gradient)
                 you can use that point as a first guess for an LR. Default: False.
 
         Returns:
@@ -464,17 +465,18 @@ class LRFinder(object):
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
 
-        # Plot the suggested LR in a one-time loop
-        while suggestion:
+        # Plot the suggested LR
+        if suggest_lr:
             try: 
                 mg = (np.gradient(np.array(losses))).argmin()
-            except:
+            except ValueError:
                 print("Failed to compute the gradients, there might not be enough points.")
-                break
+                mg = None
+            if mg is not None:
+                # plot
 
-            print(f"Min numerical gradient: {lrs[mg]:.2E}")
-            ax.plot(lrs[mg], losses[mg], markersize=10, marker='o', color='red')
-            break
+                print("Suggested LR: {:.2E}".format(lrs[mg]))
+                ax.plot(lrs[mg], losses[mg], markersize=10, marker='o', color='red')
 
         if log_lr:
             ax.set_xscale("log")

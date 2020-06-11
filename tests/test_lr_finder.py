@@ -120,7 +120,7 @@ def test_plot_with_skip_and_suggest_lr(suggest_lr, skip_start):
     mpl.use('Agg')
     fig, ax = plt.subplots()
     lr_finder.plot(
-            skip_start=skip_start, skip_end=skip_end, suggestion=suggest_lr, ax=ax
+            skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
     )
 
     if num_iter - skip_start - skip_end <= 1:
