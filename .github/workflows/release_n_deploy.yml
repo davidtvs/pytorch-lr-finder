@@ -98,7 +98,7 @@ jobs:
           echo "::set-output name=content::$notes"
 
       - name: Create draft release
-        uses: actions/create-release@v1
+        uses: actions/create-release@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

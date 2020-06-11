@@ -36,7 +36,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="torch-lr-finder",
-    version="0.1.5.4",
+    version="0.1.5.5",
     author="David Silva",
     author_email="davidtvs10@gmail.com",
     description="Pytorch implementation of the learning rate range test",
