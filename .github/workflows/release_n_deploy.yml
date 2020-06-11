@@ -43,6 +43,12 @@ jobs:
           password: ${{ secrets.test_pypi_password }}
           repository_url: https://test.pypi.org/legacy/
 
+      # Sleep for some seconds to give Test PyPI time to update the search index
+      - name: Sleep for 120 seconds
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '120s'
+
   verify-test-pypi:
     name: Install from Test PyPI
     runs-on: ubuntu-latest
@@ -62,12 +68,6 @@ jobs:
         run: |
           echo ::set-output name=number::${GITHUB_REF#refs/*/}
           echo ${{ steps.release_version.outputs.number }}
-
-      # Sleep for some seconds to give Test PyPI time to update the search index
-      - name: Sleep for 60 seconds
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '60s'
 
       - name: Install torch-lr-finder ${{ steps.release_version.outputs.number }} from Test PyPI
         run: |
