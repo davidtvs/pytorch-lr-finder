@@ -42,7 +42,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install torch==${{ matrix.pytorch-version }} -f https://download.pytorch.org/whl/torch_stable.html
           pip install -e .[tests]
-          pip install -e .[tests] --global-option="apex"
+          pip install -e .[tests] - v--global-option="apex"
 
       - name: Lint with flake8
         run: |
