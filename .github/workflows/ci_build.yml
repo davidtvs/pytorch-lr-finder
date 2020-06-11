@@ -28,12 +28,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Checkout tools repo
-        uses: actions/checkout@v2
-        with:
-          repository: NVIDIA/apex
-          path: apex
-
       - name: Caching dependencies
         uses: actions/cache@v2
         with:
@@ -48,7 +42,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install torch==${{ matrix.pytorch-version }} -f https://download.pytorch.org/whl/torch_stable.html
           pip install -e .[tests]
-          pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" apex/
+          pip install -e .[tests] --global-option="apex"
 
       - name: Lint with flake8
         run: |

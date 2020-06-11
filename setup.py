@@ -2,34 +2,42 @@ import setuptools
 import sys
 
 
-# install requirements for mixed precision training
-if "amp" in sys.argv:
-    sys.argv.remove("amp")
+if "apex" in sys.argv:
+    sys.argv.remove("apex")
 
-    from pip import __version__ as PIP_VERSION
+    # install requirements for mixed precision training
+    import subprocess
+    import torch
 
-    PIP_MAJOR, PIP_MINOR = [int(v) for v in PIP_VERSION.split(".")[:2]]
+    TORCH_MAJOR = int(torch.__version__.split(".")[0])
+    TORCH_MINOR = int(torch.__version__.split(".")[1])
 
-    if PIP_MAJOR <= 9:
-        raise RuntimeError(
-            "Current version of pip is not compatible with `apex`,"
-            "you may need to install `apex` manually."
+    if TORCH_MAJOR == 0:
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "git+https://github.com/NVIDIA/apex",
+                "-v",
+                "--no-cache-dir",
+            ]
         )
-    elif 10 <= PIP_MAJOR <= 19 and PIP_MINOR < 3:
-        from pip._internal import main as pipmain
     else:
-        from pip._internal.main import main as pipmain
-
-    pipmain(
-        [
-            "install",
-            "git+https://github.com/NVIDIA/apex",
-            "-v",
-            "--no-cache-dir",
-            "--global-option=--cpp_ext",
-            "--global-option=--cuda_ext",
-        ]
-    )
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "git+https://github.com/NVIDIA/apex",
+                "-v",
+                "--no-cache-dir",
+                "--global-option=--cpp_ext",
+                "--global-option=--cuda_ext",
+            ]
+        )
 
 
 with open("README.md", "r") as f:

@@ -25,7 +25,7 @@ pip install torch-lr-finder
 Install with the support of mixed precision training (see also [this section](#Mixed-precision-training)):
 
 ```bash
-pip install torch-lr-finder -v --global-option="amp"
+pip install torch-lr-finder -v --global-option="apex"
 ```
 
 ## Implementation details and usage
