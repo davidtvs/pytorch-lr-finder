@@ -41,7 +41,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install torch==${{ matrix.pytorch-version }} -f https://download.pytorch.org/whl/torch_stable.html
-          pip install -e .[tests] -v
+          pip install -e .[tests] -v --global-option="amp"
 
       - name: Lint with flake8
         run: |
