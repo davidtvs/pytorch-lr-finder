@@ -55,7 +55,7 @@ jobs:
       - name: Get release version
         id: release_version
         run: |
-          echo ::set-output number=version::${GITHUB_REF#refs/*/}
+          echo ::set-output name=number::${GITHUB_REF#refs/*/}
           echo ${{ steps.release_version.outputs.number }}
 
       - name: Install torch-lr-finder v${{ steps.release_version.outputs.number }} from Test PyPI

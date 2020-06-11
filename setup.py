@@ -31,13 +31,12 @@ if "amp" in sys.argv:
         ]
     )
 
-
 with open("README.md", "r") as f:
     long_description = f.read()
 
 setuptools.setup(
     name="torch-lr-finder",
-    version="0.1.5.3",
+    version="0.1.5.4",
     author="David Silva",
     author_email="davidtvs10@gmail.com",
     description="Pytorch implementation of the learning rate range test",
