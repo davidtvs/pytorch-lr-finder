@@ -10,7 +10,6 @@ if "apex" in sys.argv:
     import torch
 
     TORCH_MAJOR = int(torch.__version__.split(".")[0])
-    TORCH_MINOR = int(torch.__version__.split(".")[1])
 
     if TORCH_MAJOR == 0:
         subprocess.run(
