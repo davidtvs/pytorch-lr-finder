@@ -126,4 +126,6 @@ def test_plot_with_skip_and_suggest_lr(suggest_lr, skip_start, skip_end):
         assert len(ax.lines) == 1
     else:
         # handle different suggest_lr
-        assert len(ax.lines) == bool(suggest_lr)+1
+        # for 'steepest': the point with steepest gradient (minimal gradient)
+        assert len(ax.lines) == 1
+        assert len(ax.collections) == int(suggest_lr)

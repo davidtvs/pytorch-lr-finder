@@ -415,7 +415,7 @@ class LRFinder(object):
 
         return running_loss / len(val_iter.dataset)
 
-    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None, ax=None, suggest_lr=False):
+    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None, ax=None, suggest_lr=True):
         """Plots the learning rate range test.
 
         Arguments:
@@ -433,7 +433,7 @@ class LRFinder(object):
                 shown . Default: None.
             suggest_lr (bool, optional): suggest a learning rate by
                 - 'steepest': the point with steepest gradient (minimal gradient)
-                you can use that point as a first guess for an LR. Default: False.
+                you can use that point as a first guess for an LR. Default: True.
 
         Returns:
             The matplotlib.axes.Axes object that contains the plot.
@@ -467,16 +467,20 @@ class LRFinder(object):
 
         # Plot the suggested LR
         if suggest_lr:
-            try: 
-                mg = (np.gradient(np.array(losses))).argmin()
+            # 'steepest': the point with steepest gradient (minimal gradient)
+            print("LR suggestion: steepest gradient")
+            min_grad_idx = None
+            try:
+                min_grad_idx = (np.gradient(np.array(losses))).argmin()
             except ValueError:
                 print("Failed to compute the gradients, there might not be enough points.")
-                mg = None
-            if mg is not None:
-                # plot
-
-                print("Suggested LR: {:.2E}".format(lrs[mg]))
-                ax.plot(lrs[mg], losses[mg], markersize=10, marker='o', color='red')
+            if min_grad_idx is not None:
+                print("Suggested LR: {:.2E}".format(lrs[min_grad_idx]))
+                ax.scatter(
+                    lrs[min_grad_idx], losses[min_grad_idx], s=75, zorder=3,
+                    marker="o", color="red", label="steepest gradient",
+                )
+                ax.legend()
 
         if log_lr:
             ax.set_xscale("log")
