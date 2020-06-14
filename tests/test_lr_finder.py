@@ -3,7 +3,6 @@ from torch_lr_finder import LRFinder
 
 import task as mod_task
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
@@ -107,17 +106,16 @@ def test_scheduler_and_num_iter(num_iter, scheduler):
 
 @pytest.mark.parametrize("suggest_lr", [False, True])
 @pytest.mark.parametrize("skip_start", [0, 5, 10])
-def test_plot_with_skip_and_suggest_lr(suggest_lr, skip_start):
+@pytest.mark.parametrize("skip_end", [0, 5, 10])
+def test_plot_with_skip_and_suggest_lr(suggest_lr, skip_start, skip_end):
     task = mod_task.XORTask()
     num_iter = 11
-    skip_end = 5
     # prepare_lr_finder sets the starting lr to 1e-5
     lr_finder = prepare_lr_finder(task)
     lr_finder.range_test(
             task.train_loader, num_iter=num_iter, step_mode="exp", end_lr=0.1
     )
 
-    mpl.use('Agg')
     fig, ax = plt.subplots()
     lr_finder.plot(
             skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
