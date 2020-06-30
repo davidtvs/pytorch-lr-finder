@@ -132,3 +132,16 @@ def test_plot_with_skip_and_suggest_lr(suggest_lr, skip_start, skip_end):
         assert len(ax.collections) == int(suggest_lr)
         if results is not ax:
             assert len(results) == 2
+
+
+def test_suggest_lr():
+    task = mod_task.XORTask()
+    lr_finder = prepare_lr_finder(task)
+
+    lr_finder.history["loss"] = [10, 8, 4, 1, 4, 16]
+    lr_finder.history["lr"] = range(len(lr_finder.history["loss"]))
+
+    fig, ax = plt.subplots()
+    ax, lr = lr_finder.plot(skip_start=0, skip_end=0, suggest_lr=True, ax=ax)
+
+    assert lr == 2
