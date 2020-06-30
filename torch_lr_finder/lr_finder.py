@@ -494,7 +494,10 @@ class LRFinder(object):
         if fig is not None:
             plt.show()
 
-        return ax
+        if suggest_lr and min_grad_idx:
+            return ax, lrs[min_grad_idx]
+        else:
+            return ax
 
 
 class LinearLR(_LRScheduler):

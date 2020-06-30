@@ -117,15 +117,18 @@ def test_plot_with_skip_and_suggest_lr(suggest_lr, skip_start, skip_end):
     )
 
     fig, ax = plt.subplots()
-    lr_finder.plot(
+    results = lr_finder.plot(
             skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
     )
 
     if num_iter - skip_start - skip_end <= 1:
         # handle data with one or zero lr
         assert len(ax.lines) == 1
+        assert results is ax
     else:
         # handle different suggest_lr
         # for 'steepest': the point with steepest gradient (minimal gradient)
         assert len(ax.lines) == 1
         assert len(ax.collections) == int(suggest_lr)
+        if results is not ax:
+            assert len(results) == 2
