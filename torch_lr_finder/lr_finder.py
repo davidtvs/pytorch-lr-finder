@@ -436,7 +436,8 @@ class LRFinder(object):
                 you can use that point as a first guess for an LR. Default: True.
 
         Returns:
-            The matplotlib.axes.Axes object that contains the plot.
+            The matplotlib.axes.Axes object that contains the plot,
+            and the suggested learning rate (if set suggest_lr=True).
         """
 
         if skip_start < 0:
