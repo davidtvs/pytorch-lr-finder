@@ -113,12 +113,12 @@ def test_plot_with_skip_and_suggest_lr(suggest_lr, skip_start, skip_end):
     # prepare_lr_finder sets the starting lr to 1e-5
     lr_finder = prepare_lr_finder(task)
     lr_finder.range_test(
-            task.train_loader, num_iter=num_iter, step_mode="exp", end_lr=0.1
+        task.train_loader, num_iter=num_iter, step_mode="exp", end_lr=0.1
     )
 
     fig, ax = plt.subplots()
     results = lr_finder.plot(
-            skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
+        skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
     )
 
     if num_iter - skip_start - skip_end <= 1:

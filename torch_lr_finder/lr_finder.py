@@ -415,7 +415,15 @@ class LRFinder(object):
 
         return running_loss / len(val_iter.dataset)
 
-    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None, ax=None, suggest_lr=True):
+    def plot(
+        self,
+        skip_start=10,
+        skip_end=5,
+        log_lr=True,
+        show_lr=None,
+        ax=None,
+        suggest_lr=True,
+    ):
         """Plots the learning rate range test.
 
         Arguments:
@@ -474,12 +482,19 @@ class LRFinder(object):
             try:
                 min_grad_idx = (np.gradient(np.array(losses))).argmin()
             except ValueError:
-                print("Failed to compute the gradients, there might not be enough points.")
+                print(
+                    "Failed to compute the gradients, there might not be enough points."
+                )
             if min_grad_idx is not None:
                 print("Suggested LR: {:.2E}".format(lrs[min_grad_idx]))
                 ax.scatter(
-                    lrs[min_grad_idx], losses[min_grad_idx], s=75, zorder=3,
-                    marker="o", color="red", label="steepest gradient",
+                    lrs[min_grad_idx],
+                    losses[min_grad_idx],
+                    s=75,
+                    marker="o",
+                    color="red",
+                    zorder=3,
+                    label="steepest gradient",
                 )
                 ax.legend()
 
