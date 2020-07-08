@@ -3,6 +3,8 @@ from torch_lr_finder import LRFinder
 
 import task as mod_task
 
+import matplotlib.pyplot as plt
+
 
 try:
     from apex import amp
@@ -177,3 +179,46 @@ def test_scheduler_and_num_iter(num_iter, scheduler):
         lr_finder.range_test(
             task.train_loader, num_iter=num_iter, step_mode=scheduler, end_lr=5e-5
         )
+
+
+@pytest.mark.parametrize("suggest_lr", [False, True])
+@pytest.mark.parametrize("skip_start", [0, 5, 10])
+@pytest.mark.parametrize("skip_end", [0, 5, 10])
+def test_plot_with_skip_and_suggest_lr(suggest_lr, skip_start, skip_end):
+    task = mod_task.XORTask()
+    num_iter = 11
+    # prepare_lr_finder sets the starting lr to 1e-5
+    lr_finder = prepare_lr_finder(task)
+    lr_finder.range_test(
+        task.train_loader, num_iter=num_iter, step_mode="exp", end_lr=0.1
+    )
+
+    fig, ax = plt.subplots()
+    results = lr_finder.plot(
+        skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
+    )
+
+    if num_iter - skip_start - skip_end <= 1:
+        # handle data with one or zero lr
+        assert len(ax.lines) == 1
+        assert results is ax
+    else:
+        # handle different suggest_lr
+        # for 'steepest': the point with steepest gradient (minimal gradient)
+        assert len(ax.lines) == 1
+        assert len(ax.collections) == int(suggest_lr)
+        if results is not ax:
+            assert len(results) == 2
+
+
+def test_suggest_lr():
+    task = mod_task.XORTask()
+    lr_finder = prepare_lr_finder(task)
+
+    lr_finder.history["loss"] = [10, 8, 4, 1, 4, 16]
+    lr_finder.history["lr"] = range(len(lr_finder.history["loss"]))
+
+    fig, ax = plt.subplots()
+    ax, lr = lr_finder.plot(skip_start=0, skip_end=0, suggest_lr=True, ax=ax)
+
+    assert lr == 2

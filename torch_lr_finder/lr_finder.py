@@ -1,6 +1,7 @@
 import copy
 import os
 import torch
+import numpy as np
 from tqdm.autonotebook import tqdm
 from torch.optim.lr_scheduler import _LRScheduler
 import matplotlib.pyplot as plt
@@ -408,7 +409,15 @@ class LRFinder(object):
 
         return running_loss / len(val_iter.dataset)
 
-    def plot(self, skip_start=10, skip_end=5, log_lr=True, show_lr=None, ax=None):
+    def plot(
+        self,
+        skip_start=10,
+        skip_end=5,
+        log_lr=True,
+        show_lr=None,
+        ax=None,
+        suggest_lr=True,
+    ):
         """Plots the learning rate range test.
 
         Arguments:
@@ -424,9 +433,13 @@ class LRFinder(object):
                 matplotlib axes object and the figure is not be shown. If `None`, then
                 the figure and axes object are created in this method and the figure is
                 shown . Default: None.
+            suggest_lr (bool, optional): suggest a learning rate by
+                - 'steepest': the point with steepest gradient (minimal gradient)
+                you can use that point as a first guess for an LR. Default: True.
 
         Returns:
-            The matplotlib.axes.Axes object that contains the plot.
+            The matplotlib.axes.Axes object that contains the plot,
+            and the suggested learning rate (if set suggest_lr=True).
         """
 
         if skip_start < 0:
@@ -454,6 +467,31 @@ class LRFinder(object):
 
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
+
+        # Plot the suggested LR
+        if suggest_lr:
+            # 'steepest': the point with steepest gradient (minimal gradient)
+            print("LR suggestion: steepest gradient")
+            min_grad_idx = None
+            try:
+                min_grad_idx = (np.gradient(np.array(losses))).argmin()
+            except ValueError:
+                print(
+                    "Failed to compute the gradients, there might not be enough points."
+                )
+            if min_grad_idx is not None:
+                print("Suggested LR: {:.2E}".format(lrs[min_grad_idx]))
+                ax.scatter(
+                    lrs[min_grad_idx],
+                    losses[min_grad_idx],
+                    s=75,
+                    marker="o",
+                    color="red",
+                    zorder=3,
+                    label="steepest gradient",
+                )
+                ax.legend()
+
         if log_lr:
             ax.set_xscale("log")
         ax.set_xlabel("Learning rate")
@@ -466,7 +504,10 @@ class LRFinder(object):
         if fig is not None:
             plt.show()
 
-        return ax
+        if suggest_lr and min_grad_idx:
+            return ax, lrs[min_grad_idx]
+        else:
+            return ax
 
 
 class LinearLR(_LRScheduler):
