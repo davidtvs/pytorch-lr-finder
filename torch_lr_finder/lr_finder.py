@@ -397,15 +397,10 @@ class LRFinder(object):
                     inputs, labels, non_blocking=non_blocking_transfer
                 )
 
-                if isinstance(inputs, tuple) or isinstance(inputs, list):
-                    batch_size = inputs[0].size(0)
-                else:
-                    batch_size = inputs.size(0)
-
                 # Forward pass and loss computation
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, labels)
-                running_loss += loss.item() * batch_size
+                running_loss += loss.item() * len(labels)
 
         return running_loss / len(val_iter.dataset)
 

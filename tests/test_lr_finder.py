@@ -61,6 +61,28 @@ class TestRangeTest:
         # check whether lr is actually changed
         assert max(lr_finder.history["lr"]) >= init_lrs[0]
 
+    @pytest.mark.parametrize("cls_task", [mod_task.SimplePOSTaggerTask])
+    def test_run_non_tensor_dataset(self, cls_task):
+        task = cls_task()
+        init_lrs = get_optim_lr(task.optimizer)
+
+        lr_finder = prepare_lr_finder(task)
+        lr_finder.range_test(task.train_loader, end_lr=0.1)
+
+        # check whether lr is actually changed
+        assert max(lr_finder.history["lr"]) >= init_lrs[0]
+
+    @pytest.mark.parametrize("cls_task", [mod_task.SimplePOSTaggerTask])
+    def test_run_non_tensor_dataset_with_val_loader(self, cls_task):
+        task = cls_task(validate=True)
+        init_lrs = get_optim_lr(task.optimizer)
+
+        lr_finder = prepare_lr_finder(task)
+        lr_finder.range_test(task.train_loader, val_loader=task.val_loader, end_lr=0.1)
+
+        # check whether lr is actually changed
+        assert max(lr_finder.history["lr"]) >= init_lrs[0]
+
 
 class TestReset:
     @pytest.mark.parametrize(
