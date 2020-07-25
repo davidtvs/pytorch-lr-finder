@@ -56,3 +56,40 @@ class ExtraXORDataset(XORDataset):
 
     def __len__(self):
         return len(self.data)
+
+
+class SimplePOSTaggerDataset(Dataset):
+    """
+    Example borrowed from:
+    https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
+    """
+
+    def __init__(self):
+        sentences = [
+            "The dog ate the apple",
+            "Everybody read that book",
+            "The quick brown fox jumps over the lazy dog",
+            "He always wore his sunglasses at night",
+        ]
+        pos_tags = [
+            ["DET", "NOUN", "VERB", "DET", "NOUN"],
+            ["NOUN", "VERB", "DET", "NOUN"],
+            ["DET", "ADJ", "ADJ", "NOUN", "VERB", "ADP", "DET", "ADJ", "NOUN"],
+            ["NOUN", "ADV", "VERB", "ADJ", "NOUN", "ADP", "NOUN"],
+        ]
+        self.data = [v.lower().split() for v in sentences]
+
+        tag_set = set.union(*[set(v) for v in pos_tags])
+        self.tag_to_ix = {tag: i for i, tag in enumerate(tag_set)}
+        self.tag_to_ix.update({"[UNK]": -1})  # unknown tag, for other special tokens
+
+        self.label = [self.get_indices_of_tags(tags) for tags in pos_tags]
+
+    def get_indices_of_tags(self, tags):
+        return torch.LongTensor([self.tag_to_ix[tag] for tag in tags])
+
+    def __getitem__(self, index):
+        return self.data[index], self.label[index]
+
+    def __len__(self):
+        return len(self.data)

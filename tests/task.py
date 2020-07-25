@@ -5,8 +5,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Subset
 import pytest
 
-from model import LinearMLP
-from dataset import XORDataset, ExtraXORDataset
+from model import LinearMLP, LSTMTagger
+from dataset import XORDataset, ExtraXORDataset, SimplePOSTaggerDataset
 
 
 def use_cuda():
@@ -134,3 +134,66 @@ class DiscriminativeLearningRateTask(BaseTask):
         )
         self.criterion = nn.MSELoss()
         self.device = torch.device("cuda")
+
+
+class SimplePOSTaggerTask(BaseTask):
+    def __init__(self, batch_size=2, steps=100, validate=False):
+        super(BaseTask, self).__init__()
+        dataset = SimplePOSTaggerDataset()
+        n_total = len(dataset)
+        assert batch_size <= n_total, "`batch_size` is greater than size of dataset"
+        if validate:
+            n_train = int(n_total * 0.9)
+            self.train_loader = DataLoader(
+                Subset(dataset, range(n_train)),
+                batch_size=batch_size,
+                collate_fn=collate_wrapper,
+            )
+            self.val_loader = DataLoader(
+                Subset(dataset, range(n_train, n_total)),
+                batch_size=batch_size,
+                collate_fn=collate_wrapper,
+            )
+        else:
+            self.train_loader = DataLoader(
+                dataset, batch_size=batch_size, collate_fn=collate_wrapper
+            )
+            self.val_loader = None
+
+        vocab_set = set.union(*[set(v) for v in dataset.data])
+        vocab_to_ix = {vocab: i for i, vocab in enumerate(vocab_set)}
+        tagset_size = len(dataset.tag_to_ix)
+
+        self.batch_size = batch_size
+        self.model = LSTMTagger(6, 6, tagset_size, vocab_to_ix)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=1e-5)
+        self.criterion = nn.NLLLoss()
+        self.device = torch.device("cuda")
+
+
+class SentenceBatch(object):
+    def __init__(self, batch):
+        padded_sentences, padded_tags = self.pad(batch)
+        self.inputs = [v[0] for v in padded_sentences]
+        self.labels = torch.stack([v[1] for v in padded_tags])
+
+    def pad(self, batch):
+        sentences = [v[0] for v in batch]
+        tags = [v[1] for v in batch]
+        max_len = max([len(v) for v in sentences])
+        padded_sentences = [self.pad_sentence(v, max_len) for v in sentences]
+        padded_tags = [self.pad_tag(v, max_len) for v in tags]
+        return padded_sentences, padded_tags
+
+    def pad_sentence(self, sentence, max_len):
+        # "[PAD]" indicates a token just for padding sentence
+        return sentence + ["[PAD]"] * (max_len - len(sentence))
+
+    def pad_tag(self, tags, max_len):
+        # -1 (tag: "[UNK]") for "[PAD]" token
+        return torch.cat([tags, torch.LongTensor([-1] * (max_len - len(tags)))])
+
+
+def collate_wrapper(batch):
+    sentence_batch = SentenceBatch(batch)
+    return sentence_batch.inputs, sentence_batch.labels
