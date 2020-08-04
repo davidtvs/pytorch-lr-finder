@@ -1,7 +1,12 @@
 import pytest
+from torch.utils.data import DataLoader
 from torch_lr_finder import LRFinder
+from torch_lr_finder.lr_finder import (
+    DataLoaderIter, TrainDataLoaderIter, ValDataLoaderIter
+)
 
 import task as mod_task
+import dataset as mod_dataset
 
 import matplotlib.pyplot as plt
 
@@ -36,6 +41,33 @@ def prepare_lr_finder(task, **kwargs):
 
 def get_optim_lr(optimizer):
     return [grp["lr"] for grp in optimizer.param_groups]
+
+
+def run_loader_iter(loader_iter, desired_runs=None):
+    """Run a `DataLoaderIter` object for specific times.
+
+    Arguments:
+        loader_iter (torch_lr_finder.DataLoaderIter): the iterator to test.
+        desired_runs (int, optional): times that iterator should be iterated.
+            If it's not given, `len(loader_iter.data_loader)` will be used.
+
+    Returns:
+        is_achieved (bool): False if `loader_iter` cannot be iterated specific
+            times. It usually means `loader_iter` has raised `StopIteration`.
+    """
+    assert isinstance(loader_iter, DataLoaderIter)
+
+    if desired_runs is None:
+        desired_runs = len(loader_iter.data_loader)
+
+    count = 0
+    try:
+        for i in range(desired_runs):
+            next(loader_iter)
+            count += 1
+    except StopIteration:
+        return False
+    return desired_runs == count
 
 
 class TestRangeTest:
@@ -189,6 +221,43 @@ class TestMixedPrecision:
         # NOTE: Here we did not perform gradient accumulation, so that call count
         # of `amp.scale_loss` should equal to `num_iter`.
         assert spy.call_count == num_iter
+
+
+class TestDataLoaderIter:
+    def test_traindataloaderiter(self):
+        batch_size, data_length = 32, 256
+        dataset = mod_dataset.RandomDataset(256)
+        dataloader = DataLoader(dataset, batch_size=batch_size)
+
+        loader_iter = TrainDataLoaderIter(dataloader)
+
+        assert run_loader_iter(loader_iter)
+
+        # `TrainDataLoaderIter` can reset itself, so that it's ok to reuse it
+        # directly and iterate it more than `len(dataloader)` times.
+        assert run_loader_iter(loader_iter, desired_runs=len(dataloader) + 1)
+
+
+    def test_valdataloaderiter(self):
+        batch_size, data_length = 32, 256
+        dataset = mod_dataset.RandomDataset(256)
+        dataloader = DataLoader(dataset, batch_size=batch_size)
+
+        loader_iter = ValDataLoaderIter(dataloader)
+
+        assert run_loader_iter(loader_iter)
+
+        # `ValDataLoaderIter` can't reset itself, so this should be False if
+        # we re-run it without resetting it.
+        assert not run_loader_iter(loader_iter)
+
+        # Reset it by `iter()`
+        loader_iter = iter(loader_iter)
+        assert run_loader_iter(loader_iter)
+
+        # `ValDataLoaderIter` can't be iterated more than `len(dataloader)` times
+        loader_iter = ValDataLoaderIter(dataloader)
+        assert not run_loader_iter(loader_iter, desired_runs=len(dataloader) + 1)
 
 
 @pytest.mark.parametrize("num_iter", [0, 1])
