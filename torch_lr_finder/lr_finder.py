@@ -87,7 +87,7 @@ class ValDataLoaderIter(DataLoaderIter):
         loader_iter = iter(loader_iter)  # __iter__ is called by `iter()`
         ```
     """
-    def __init__(self, data_loader, auto_reset=True):
+    def __init__(self, data_loader):
         super().__init__(data_loader)
         self.run_limit = len(self.data_loader)
         self.run_counter = 0
