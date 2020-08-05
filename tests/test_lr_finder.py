@@ -226,7 +226,7 @@ class TestMixedPrecision:
 class TestDataLoaderIter:
     def test_traindataloaderiter(self):
         batch_size, data_length = 32, 256
-        dataset = mod_dataset.RandomDataset(256)
+        dataset = mod_dataset.RandomDataset(data_length)
         dataloader = DataLoader(dataset, batch_size=batch_size)
 
         loader_iter = TrainDataLoaderIter(dataloader)
@@ -237,10 +237,9 @@ class TestDataLoaderIter:
         # directly and iterate it more than `len(dataloader)` times.
         assert run_loader_iter(loader_iter, desired_runs=len(dataloader) + 1)
 
-
     def test_valdataloaderiter(self):
         batch_size, data_length = 32, 256
-        dataset = mod_dataset.RandomDataset(256)
+        dataset = mod_dataset.RandomDataset(data_length)
         dataloader = DataLoader(dataset, batch_size=batch_size)
 
         loader_iter = ValDataLoaderIter(dataloader)
@@ -258,6 +257,66 @@ class TestDataLoaderIter:
         # `ValDataLoaderIter` can't be iterated more than `len(dataloader)` times
         loader_iter = ValDataLoaderIter(dataloader)
         assert not run_loader_iter(loader_iter, desired_runs=len(dataloader) + 1)
+
+    def test_run_range_test_with_traindataloaderiter(self, mocker):
+        task = mod_task.XORTask()
+        lr_finder = prepare_lr_finder(task)
+        num_iter = 5
+
+        loader_iter = TrainDataLoaderIter(task.train_loader)
+        spy = mocker.spy(loader_iter, "inputs_labels_from_batch")
+
+        lr_finder.range_test(loader_iter, num_iter=num_iter)
+        assert spy.call_count == num_iter
+
+    def test_run_range_test_with_valdataloaderiter(self, mocker):
+        task = mod_task.XORTask(validate=True)
+        lr_finder = prepare_lr_finder(task)
+        num_iter = 5
+
+        train_loader_iter = TrainDataLoaderIter(task.train_loader)
+        val_loader_iter = ValDataLoaderIter(task.val_loader)
+        spy_train = mocker.spy(train_loader_iter, "inputs_labels_from_batch")
+        spy_val = mocker.spy(val_loader_iter, "inputs_labels_from_batch")
+
+        lr_finder.range_test(
+            train_loader_iter, val_loader=val_loader_iter, num_iter=num_iter
+        )
+        assert spy_train.call_count == num_iter
+        assert spy_val.call_count == num_iter * len(task.val_loader)
+
+    def test_run_range_test_with_trainloaderiter_without_subclassing(self):
+        task = mod_task.XORTask()
+        lr_finder = prepare_lr_finder(task)
+        num_iter = 5
+
+        loader_iter = CustomLoaderIter(task.train_loader)
+
+        with pytest.raises(ValueError):
+            lr_finder.range_test(loader_iter, num_iter=num_iter)
+
+    def test_run_range_test_with_valloaderiter_without_subclassing(self):
+        task = mod_task.XORTask(validate=True)
+        lr_finder = prepare_lr_finder(task)
+        num_iter = 5
+
+        train_loader_iter = TrainDataLoaderIter(task.train_loader)
+        val_loader_iter = CustomLoaderIter(task.val_loader)
+
+        with pytest.raises(ValueError):
+            lr_finder.range_test(
+                train_loader_iter, val_loader=val_loader_iter, num_iter=num_iter
+            )
+
+
+class CustomLoaderIter(object):
+    """This class does not inherit from `DataLoaderIter`, should be used to
+    trigger exceptions related to type checking."""
+    def __init__(self, loader):
+        self.loader = loader
+
+    def __iter__(self):
+        return iter(self.loader)
 
 
 @pytest.mark.parametrize("num_iter", [0, 1])
