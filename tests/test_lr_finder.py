@@ -292,7 +292,7 @@ class TestDataLoaderIter:
 
         loader_iter = CustomLoaderIter(task.train_loader)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="`train_loader` has unsupported type"):
             lr_finder.range_test(loader_iter, num_iter=num_iter)
 
     def test_run_range_test_with_valloaderiter_without_subclassing(self):
@@ -303,7 +303,7 @@ class TestDataLoaderIter:
         train_loader_iter = TrainDataLoaderIter(task.train_loader)
         val_loader_iter = CustomLoaderIter(task.val_loader)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="`val_loader` has unsupported type"):
             lr_finder.range_test(
                 train_loader_iter, val_loader=val_loader_iter, num_iter=num_iter
             )
