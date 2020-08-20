@@ -68,7 +68,39 @@ class TrainDataLoaderIter(DataLoaderIter):
 
 
 class ValDataLoaderIter(DataLoaderIter):
-    pass
+    """This iterator will reset itself **only** when it is acquired by
+    the syntax of normal `iterator`. That is, this iterator just works
+    like a `torch.data.DataLoader`. If you want to restart it, you
+    should use it like:
+
+        ```
+        loader_iter = ValDataLoaderIter(data_loader)
+        for batch in loader_iter:
+            ...
+
+        # `loader_iter` should run out of values now, you can restart it by:
+        # 1. the way we use a `torch.data.DataLoader`
+        for batch in loader_iter:        # __iter__ is called implicitly
+            ...
+
+        # 2. passing it into `iter()` manually
+        loader_iter = iter(loader_iter)  # __iter__ is called by `iter()`
+        ```
+    """
+    def __init__(self, data_loader):
+        super().__init__(data_loader)
+        self.run_limit = len(self.data_loader)
+        self.run_counter = 0
+
+    def __iter__(self):
+        if self.run_counter >= self.run_limit:
+            self._iterator = iter(self.data_loader)
+            self.run_counter = 0
+        return self
+
+    def __next__(self):
+        self.run_counter += 1
+        return super(ValDataLoaderIter, self).__next__()
 
 
 class LRFinder(object):
