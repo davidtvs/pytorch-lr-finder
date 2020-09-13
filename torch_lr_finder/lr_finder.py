@@ -31,9 +31,9 @@ class DataLoaderIter(object):
     def inputs_labels_from_batch(self, batch_data):
         if not isinstance(batch_data, list) and not isinstance(batch_data, tuple):
             raise ValueError(
-                "Your batch type not supported: {}. Please inherit from "
-                "`TrainDataLoaderIter` (or `ValDataLoaderIter`) and redefine "
-                "`_batch_make_inputs_labels` method.".format(type(batch_data))
+                "Your batch type is not supported: {}. Please inherit from "
+                "`TrainDataLoaderIter` or `ValDataLoaderIter` and override the "
+                "`inputs_labels_from_batch` method.".format(type(batch_data))
             )
 
         inputs, labels, *_ = batch_data
@@ -87,6 +87,7 @@ class ValDataLoaderIter(DataLoaderIter):
         loader_iter = iter(loader_iter)  # __iter__ is called by `iter()`
         ```
     """
+
     def __init__(self, data_loader):
         super().__init__(data_loader)
         self.run_limit = len(self.data_loader)
