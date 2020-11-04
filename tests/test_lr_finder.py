@@ -372,3 +372,21 @@ def test_suggest_lr():
     ax, lr = lr_finder.plot(skip_start=0, skip_end=0, suggest_lr=True, ax=ax)
 
     assert lr == 2
+
+    # Loss with minimal gradient is the first element in history
+    lr_finder.history["loss"] = [1, 0, 1, 2, 3, 4]
+    lr_finder.history["lr"] = range(len(lr_finder.history["loss"]))
+
+    fig, ax = plt.subplots()
+    ax, lr = lr_finder.plot(skip_start=0, skip_end=0, suggest_lr=True, ax=ax)
+
+    assert lr == 0
+
+    # Loss with minimal gradient is the last element in history
+    lr_finder.history["loss"] = [0, 1, 2, 3, 4, 3]
+    lr_finder.history["lr"] = range(len(lr_finder.history["loss"]))
+
+    fig, ax = plt.subplots()
+    ax, lr = lr_finder.plot(skip_start=0, skip_end=0, suggest_lr=True, ax=ax)
+
+    assert lr == len(lr_finder.history["loss"]) - 1

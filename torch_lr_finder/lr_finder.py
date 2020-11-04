@@ -532,7 +532,7 @@ class LRFinder(object):
         if fig is not None:
             plt.show()
 
-        if suggest_lr and min_grad_idx:
+        if suggest_lr and min_grad_idx is not None:
             return ax, lrs[min_grad_idx]
         else:
             return ax
