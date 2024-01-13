@@ -417,13 +417,7 @@ class LRFinder(object):
             if self.amp_backend == "torch":
                 self.grad_scaler.scale(loss).backward()
             elif self.amp_backend == "apex" and hasattr(self.optimizer, "_amp_stash"):
-                # For minor performance optimization, see also:
-                # https://nvidia.github.io/apex/advanced.html#gradient-accumulation-across-iterations
-                delay_unscale = ((i + 1) % accumulation_steps) != 0
-
-                with apex.amp.scale_loss(
-                    loss, self.optimizer, delay_unscale=delay_unscale
-                ) as scaled_loss:
+                with apex.amp.scale_loss(loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
             else:
                 loss.backward()
