@@ -11,12 +11,19 @@ from packaging import version
 
 PYTORCH_VERSION = version.parse(torch.__version__)
 
+# Check available backends for mixed precision training
+AVAILABLE_AMP_BACKENDS = []
 try:
-    from apex import amp
-
-    IS_AMP_AVAILABLE = True
+    import apex.amp
+    AVAILABLE_AMP_BACKENDS.append("apex")
 except ImportError:
-    IS_AMP_AVAILABLE = False
+    pass
+
+try:
+    import torch.amp
+    AVAILABLE_AMP_BACKENDS.append("torch")
+except ImportError:
+    pass
 
 
 class DataLoaderIter(object):
@@ -127,6 +134,12 @@ class LRFinder(object):
         cache_dir (string, optional): path for storing temporary files. If no path is
             specified, system-wide temporary directory is used. Notice that this
             parameter will be ignored if `memory_cache` is True.
+        amp_backend (string, optional): backend for mixed precision training. Currently
+            only `torch.amp` and `apex.amp` are supported. If it's not specified,
+            mixed precision training is disabled.
+        amp_config (dict, optional): config for `torch.amp.autocast()` only.
+        grad_scaler (torch.cuda.amp.GradScaler, optional): gradient scaler for
+            `torch.amp` only.
 
     Example:
         >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
@@ -147,6 +160,9 @@ class LRFinder(object):
         device=None,
         memory_cache=True,
         cache_dir=None,
+        amp_backend=None,
+        amp_config=None,
+        grad_scaler=None,
     ):
         # Check if the optimizer is already attached to a scheduler
         self.optimizer = optimizer
@@ -158,6 +174,18 @@ class LRFinder(object):
         self.best_loss = None
         self.memory_cache = memory_cache
         self.cache_dir = cache_dir
+
+        # Settings related to mixed precision training
+        if amp_backend and (amp_backend not in AVAILABLE_AMP_BACKENDS):
+            raise ValueError(f"Unknown amp backend: {amp_backend}")
+
+        if amp_backend == "torch":
+            if grad_scaler is None:
+                raise ValueError(f"`grad_scaler` is required when using `torch.amp`")
+
+        self.amp_backend = amp_backend
+        self.amp_config = amp_config
+        self.grad_scaler = grad_scaler
 
         # Save the original state of the model and optimizer so they can be restored if
         # needed
@@ -374,19 +402,26 @@ class LRFinder(object):
             )
 
             # Forward pass
-            outputs = self.model(inputs)
-            loss = self.criterion(outputs, labels)
+            if self.amp_backend == "torch":
+                with torch.amp.autocast(**self.amp_config):
+                    outputs = self.model(inputs)
+                    loss = self.criterion(outputs, labels)
+            else:
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, labels)
 
             # Loss should be averaged in each step
             loss /= accumulation_steps
 
             # Backward pass
-            if IS_AMP_AVAILABLE and hasattr(self.optimizer, "_amp_stash"):
+            if self.amp_backend == "torch":
+                self.grad_scaler.scale(loss).backward()
+            elif self.amp_backend == "apex" and hasattr(self.optimizer, "_amp_stash"):
                 # For minor performance optimization, see also:
                 # https://nvidia.github.io/apex/advanced.html#gradient-accumulation-across-iterations
                 delay_unscale = ((i + 1) % accumulation_steps) != 0
 
-                with amp.scale_loss(
+                with apex.amp.scale_loss(
                     loss, self.optimizer, delay_unscale=delay_unscale
                 ) as scaled_loss:
                     scaled_loss.backward()
@@ -398,7 +433,11 @@ class LRFinder(object):
             else:
                 total_loss += loss
 
-        self.optimizer.step()
+        if self.amp_backend == "torch":
+            self.grad_scaler.step(self.optimizer)
+            self.grad_scaler.update()
+        else:
+            self.optimizer.step()
 
         return total_loss.item()
 

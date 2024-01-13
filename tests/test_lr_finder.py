@@ -10,13 +10,19 @@ import dataset as mod_dataset
 
 import matplotlib.pyplot as plt
 
+# Check available backends for mixed precision training
+AVAILABLE_AMP_BACKENDS = []
+try:
+    import apex.amp
+    AVAILABLE_AMP_BACKENDS.append("apex")
+except ImportError:
+    pass
 
 try:
-    from apex import amp
-
-    IS_AMP_AVAILABLE = True
+    import torch.amp
+    AVAILABLE_AMP_BACKENDS.append("torch")
 except ImportError:
-    IS_AMP_AVAILABLE = False
+    pass
 
 
 def collect_task_classes():
@@ -34,6 +40,9 @@ def prepare_lr_finder(task, **kwargs):
         "device": kwargs.get("device", None),
         "memory_cache": kwargs.get("memory_cache", True),
         "cache_dir": kwargs.get("cache_dir", None),
+        "amp_backend": kwargs.get("amp_backend", None),
+        "amp_config": kwargs.get("amp_config", None),
+        "grad_scaler": kwargs.get("grad_scaler", None),
     }
     lr_finder = LRFinder(model, optimizer, criterion, **config)
     return lr_finder
@@ -173,7 +182,7 @@ class TestGradientAccumulation:
         assert spy.call_count == accum_steps * num_iter
 
     @pytest.mark.skipif(
-        not (IS_AMP_AVAILABLE and mod_task.use_cuda()),
+        not (("apex" in AVAILABLE_AMP_BACKENDS) and mod_task.use_cuda()),
         reason="`apex` module and gpu is required to run this test."
     )
     def test_gradient_accumulation_with_apex_amp(self, mocker):
@@ -186,23 +195,50 @@ class TestGradientAccumulation:
         # CUDA GPU. So we have to move model to GPU first.
         model, optimizer, device = task.model, task.optimizer, task.device
         model = model.to(device)
-        task.model, task.optimizer = amp.initialize(model, optimizer)
+        task.model, task.optimizer = apex.amp.initialize(model, optimizer)
 
-        lr_finder = prepare_lr_finder(task)
-        spy = mocker.spy(amp, "scale_loss")
+        lr_finder = prepare_lr_finder(task, amp_backend="apex")
+        spy = mocker.spy(apex.amp, "scale_loss")
 
         lr_finder.range_test(
             task.train_loader, num_iter=num_iter, accumulation_steps=accum_steps
         )
         assert spy.call_count == accum_steps * num_iter
 
+    @pytest.mark.skipif(
+        not (("torch" in AVAILABLE_AMP_BACKENDS) and mod_task.use_cuda()),
+        reason="`torch.amp` module and gpu is required to run this test."
+    )
+    def test_gradient_accumulation_with_torch_amp(self, mocker):
+        desired_bs, accum_steps = 32, 4
+        real_bs = desired_bs // accum_steps
+        num_iter = 10
+        task = mod_task.XORTask(batch_size=real_bs)
+
+        # Config for `torch.amp`. Though `torch.amp.autocast` supports various
+        # device types, we test it with CUDA only.
+        amp_config = {
+            "device_type": "cuda",
+            "dtype": torch.float16,
+        }
+        grad_scaler = torch.cuda.amp.GradScaler()
+
+        lr_finder = prepare_lr_finder(
+            task, amp_backend="torch", amp_config=amp_config, grad_scaler=grad_scaler
+        )
+        spy = mocker.spy(grad_scaler, "scale")
+
+        lr_finder.range_test(
+            task.train_loader, num_iter=num_iter, accumulation_steps=accum_steps
+        )
+        assert spy.call_count == accum_steps * num_iter
 
 @pytest.mark.skipif(
-    not (IS_AMP_AVAILABLE and mod_task.use_cuda()),
+    not (("apex" in AVAILABLE_AMP_BACKENDS) and mod_task.use_cuda()),
     reason="`apex` module and gpu is required to run these tests."
 )
 class TestMixedPrecision:
-    def test_mixed_precision(self, mocker):
+    def test_mixed_precision_apex(self, mocker):
         batch_size = 32
         num_iter = 10
         task = mod_task.XORTask(batch_size=batch_size)
@@ -211,17 +247,37 @@ class TestMixedPrecision:
         # CUDA GPU. So we have to move model to GPU first.
         model, optimizer, device = task.model, task.optimizer, task.device
         model = model.to(device)
-        task.model, task.optimizer = amp.initialize(model, optimizer)
+        task.model, task.optimizer = apex.amp.initialize(model, optimizer)
         assert hasattr(task.optimizer, "_amp_stash")
 
-        lr_finder = prepare_lr_finder(task)
-        spy = mocker.spy(amp, "scale_loss")
+        lr_finder = prepare_lr_finder(task, amp_backend="apex")
+        spy = mocker.spy(apex.amp, "scale_loss")
 
         lr_finder.range_test(task.train_loader, num_iter=num_iter)
         # NOTE: Here we did not perform gradient accumulation, so that call count
         # of `amp.scale_loss` should equal to `num_iter`.
         assert spy.call_count == num_iter
 
+    def test_mixed_precision_torch(self, mocker):
+        batch_size = 32
+        num_iter = 10
+        task = mod_task.XORTask(batch_size=batch_size)
+
+        amp_config = {
+            "device_type": "cuda",
+            "dtype": torch.float16,
+        }
+        grad_scaler = torch.cuda.amp.GradScaler()
+
+        lr_finder = prepare_lr_finder(
+            task, amp_backend="torch", amp_config=amp_config, grad_scaler=grad_scaler
+        )
+        spy = mocker.spy(grad_scaler, "scale")
+
+        lr_finder.range_test(task.train_loader, num_iter=num_iter)
+        # NOTE: Here we did not perform gradient accumulation, so that call count
+        # of `amp.scale_loss` should equal to `num_iter`.
+        assert spy.call_count == num_iter
 
 class TestDataLoaderIter:
     def test_traindataloaderiter(self):
