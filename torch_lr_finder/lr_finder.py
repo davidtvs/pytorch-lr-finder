@@ -177,11 +177,11 @@ class LRFinder(object):
 
         # Settings related to mixed precision training
         if amp_backend and (amp_backend not in AVAILABLE_AMP_BACKENDS):
-            raise ValueError(f"Unknown amp backend: {amp_backend}")
+            raise ValueError("Unknown amp backend: {}".format(amp_backend))
 
         if amp_backend == "torch":
             if grad_scaler is None:
-                raise ValueError(f"`grad_scaler` is required when using `torch.amp`")
+                raise ValueError("`grad_scaler` is required when using `torch.amp`")
 
         self.amp_backend = amp_backend
         self.amp_config = amp_config

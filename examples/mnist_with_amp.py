@@ -215,5 +215,5 @@ if __name__ == '__main__':
     elif args.amp_backend == 'torch':
         run_amp_torch(trainset, args.batch_size, no_tqdm=not args.tqdm)
     else:
-        print(f'Unknown amp backend: {args.amp_backend}')
+        print('Unknown amp backend: {}'.format(args.amp_backend))
 
