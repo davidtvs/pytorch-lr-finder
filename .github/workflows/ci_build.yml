@@ -13,11 +13,11 @@ jobs:
       matrix:
         include:
           - label: Ubuntu 20.04 - Python 3.5 - PyTorch 0.4.1
-            python-version: 3.5
+            python-version: "3.5"
             pytorch-version: torch==0.4.1 -f https://download.pytorch.org/whl/torch_stable.html
             os: ubuntu-20.04
           - label: Ubuntu latest - Python 3.10 - PyTorch stable
-            python-version: 3.10
+            python-version: "3.10"
             pytorch-version: torch
             os: ubuntu-latest
     runs-on: ${{ matrix.os }}
