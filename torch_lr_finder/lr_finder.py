@@ -127,6 +127,8 @@ class LRFinder(object):
         cache_dir (string, optional): path for storing temporary files. If no path is
             specified, system-wide temporary directory is used. Notice that this
             parameter will be ignored if `memory_cache` is True.
+        final_activation (torch.nn.Module): final activation to be applied to the 
+            model's outputs before computing the loss function.
 
     Example:
         >>> lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
@@ -147,6 +149,7 @@ class LRFinder(object):
         device=None,
         memory_cache=True,
         cache_dir=None,
+        final_activation=None
     ):
         # Check if the optimizer is already attached to a scheduler
         self.optimizer = optimizer
@@ -158,6 +161,7 @@ class LRFinder(object):
         self.best_loss = None
         self.memory_cache = memory_cache
         self.cache_dir = cache_dir
+        self.final_activation = final_activation
 
         # Save the original state of the model and optimizer so they can be restored if
         # needed
@@ -375,6 +379,8 @@ class LRFinder(object):
 
             # Forward pass
             outputs = self.model(inputs)
+            if self.final_activation:
+                outputs = self.final_activation(outputs)
             loss = self.criterion(outputs, labels)
 
             # Loss should be averaged in each step
@@ -432,6 +438,8 @@ class LRFinder(object):
 
                 # Forward pass and loss computation
                 outputs = self.model(inputs)
+                if self.final_activation:
+                    outputs = self.final_activation(outputs)
                 loss = self.criterion(outputs, labels)
                 running_loss += loss.item() * len(labels)
 
