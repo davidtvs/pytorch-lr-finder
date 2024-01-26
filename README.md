@@ -105,21 +105,40 @@ lr_finder.reset()
 
 ### Mixed precision training
 
-Currently, we use [`apex`](https://github.com/NVIDIA/apex) as the dependency for mixed precision training.
-To enable mixed precision training, you just need to call `amp.initialize()` before running `LRFinder`. e.g.
+Both `apex.amp` and `torch.amp` are supported now, here are the examples:
 
-```python
-from torch_lr_finder import LRFinder
-from apex import amp
+- Using [`apex.amp`](https://github.com/NVIDIA/apex):
+    ```python
+    from torch_lr_finder import LRFinder
+    from apex import amp
 
-# Add this line before running `LRFinder`
-model, optimizer = amp.initialize(model, optimizer, opt_level='O1')
+    # Add this line before running `LRFinder`
+    model, optimizer = amp.initialize(model, optimizer, opt_level='O1')
 
-lr_finder = LRFinder(model, optimizer, criterion, device='cuda')
-lr_finder.range_test(trainloader, end_lr=10, num_iter=100, step_mode='exp')
-lr_finder.plot()
-lr_finder.reset()
-```
+    lr_finder = LRFinder(model, optimizer, criterion, device='cuda', amp_backend='apex')
+    lr_finder.range_test(trainloader, end_lr=10, num_iter=100, step_mode='exp')
+    lr_finder.plot()
+    lr_finder.reset()
+    ```
+
+- Using [`torch.amp`](https://pytorch.org/docs/stable/notes/amp_examples.html)
+    ```python
+    from torch_lr_finder import LRFinder
+
+    amp_config = {
+        'device_type': 'cuda',
+        'dtype': torch.float16,
+    }
+    grad_scaler = torch.cuda.amp.GradScaler()
+
+    lr_finder = LRFinder(
+        model, optimizer, criterion, device='cuda',
+        amp_backend='torch', amp_config=amp_config, grad_scaler=grad_scaler
+    )
+    lr_finder.range_test(trainloader, end_lr=10, num_iter=100, step_mode='exp')
+    lr_finder.plot()
+    lr_finder.reset()
+    ```
 
 Note that the benefit of mixed precision training requires a nvidia GPU with tensor cores (see also: [NVIDIA/apex #297](https://github.com/NVIDIA/apex/issues/297))
 
