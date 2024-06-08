@@ -15,9 +15,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - label: Ubuntu 20.04 - Python 3.5 - PyTorch 0.4.1
-            python-version: "3.5"
-            pytorch-version: torch==0.4.1 -f https://download.pytorch.org/whl/torch_stable.html
+          - label: Ubuntu 20.04 - Python 3.6 - PyTorch 1.0.0
+            python-version: "3.6"
+            pytorch-version: torch==1.0.0 -f https://download.pytorch.org/whl/cpu/torch_stable.html
             os: ubuntu-20.04
           - label: Ubuntu latest - Python 3.10 - PyTorch stable
             python-version: "3.10"
