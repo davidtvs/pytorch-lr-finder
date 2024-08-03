@@ -538,7 +538,8 @@ class LRFinder(object):
                 min_grad_idx = (np.gradient(np.array(losses))).argmin()
             except ValueError:
                 print(
-                    "Failed to compute the gradients, there might not be enough points."
+                    "Failed to compute the gradients, there might not be enough points. "
+                    "Please check whether num_iter >= (skip_start + skip_end + 2)."
                 )
             if min_grad_idx is not None:
                 print("Suggested LR: {:.2E}".format(lrs[min_grad_idx]))
@@ -565,8 +566,10 @@ class LRFinder(object):
         if fig is not None:
             plt.show()
 
-        if suggest_lr and min_grad_idx is not None:
-            return ax, lrs[min_grad_idx]
+        if suggest_lr:
+            # If suggest_lr is set, then we should always return 2 values.
+            suggest_lr = None if min_grad_idx is None else lrs[min_grad_idx]
+            return ax, suggest_lr
         else:
             return ax
 
