@@ -510,6 +510,13 @@ class LRFinder(object):
         if show_lr is not None and not isinstance(show_lr, float):
             raise ValueError("show_lr must be float")
 
+        # Make sure there are enough data points to suggest a learning rate
+        if suggest_lr and len(self.history["lr"]) < (skip_start + skip_end + 2):
+            raise RuntimeError(
+                f"Need at least {skip_start + skip_end + 2} iterations to suggest a "
+                f"learning rate. Got {len(self.history['lr'])}"
+            )
+
         # Get the data to plot from the history dictionary. Also, handle skip_end=0
         # properly so the behaviour is the expected
         lrs = self.history["lr"]
@@ -533,26 +540,19 @@ class LRFinder(object):
         if suggest_lr:
             # 'steepest': the point with steepest gradient (minimal gradient)
             print("LR suggestion: steepest gradient")
-            min_grad_idx = None
-            try:
-                min_grad_idx = (np.gradient(np.array(losses))).argmin()
-            except ValueError:
-                print(
-                    "Failed to compute the gradients, there might not be enough points. "
-                    "Please check whether num_iter >= (skip_start + skip_end + 2)."
-                )
-            if min_grad_idx is not None:
-                print("Suggested LR: {:.2E}".format(lrs[min_grad_idx]))
-                ax.scatter(
-                    lrs[min_grad_idx],
-                    losses[min_grad_idx],
-                    s=75,
-                    marker="o",
-                    color="red",
-                    zorder=3,
-                    label="steepest gradient",
-                )
-                ax.legend()
+            min_grad_idx = (np.gradient(np.array(losses))).argmin()
+
+            print("Suggested LR: {:.2E}".format(lrs[min_grad_idx]))
+            ax.scatter(
+                lrs[min_grad_idx],
+                losses[min_grad_idx],
+                s=75,
+                marker="o",
+                color="red",
+                zorder=3,
+                label="steepest gradient",
+            )
+            ax.legend()
 
         if log_lr:
             ax.set_xscale("log")
@@ -568,7 +568,7 @@ class LRFinder(object):
 
         if suggest_lr:
             # If suggest_lr is set, then we should always return 2 values.
-            suggest_lr = None if min_grad_idx is None else lrs[min_grad_idx]
+            suggest_lr = lrs[min_grad_idx]
             return ax, suggest_lr
         else:
             return ax

@@ -401,9 +401,21 @@ def test_plot_with_skip_and_suggest_lr(suggest_lr, skip_start, skip_end):
     )
 
     fig, ax = plt.subplots()
-    results = lr_finder.plot(
-        skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
-    )
+
+    results = None
+    if suggest_lr and num_iter < (skip_start + skip_end + 2):
+        # No sufficient data points to calculate gradient, so this call should fail
+        with pytest.raises(RuntimeError, match="Need at least"):
+            results = lr_finder.plot(
+                skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
+            )
+
+        # No need to proceed then
+        return
+    else:
+        results = lr_finder.plot(
+            skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
+        )
 
     # NOTE:
     # - ax.lines[0]: the lr-loss curve. It should be always available once
