@@ -8,6 +8,7 @@ from torch_lr_finder.lr_finder import (
 import task as mod_task
 import dataset as mod_dataset
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 # Check available backends for mixed precision training
@@ -400,21 +401,68 @@ def test_plot_with_skip_and_suggest_lr(suggest_lr, skip_start, skip_end):
     )
 
     fig, ax = plt.subplots()
-    results = lr_finder.plot(
-        skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
-    )
 
-    if num_iter - skip_start - skip_end <= 1:
-        # handle data with one or zero lr
-        assert len(ax.lines) == 1
-        assert results is ax
+    results = None
+    if suggest_lr and num_iter < (skip_start + skip_end + 2):
+        # No sufficient data points to calculate gradient, so this call should fail
+        with pytest.raises(RuntimeError, match="Need at least"):
+            results = lr_finder.plot(
+                skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
+            )
+
+        # No need to proceed then
+        return
     else:
-        # handle different suggest_lr
-        # for 'steepest': the point with steepest gradient (minimal gradient)
-        assert len(ax.lines) == 1
-        assert len(ax.collections) == int(suggest_lr)
-        if results is not ax:
-            assert len(results) == 2
+        results = lr_finder.plot(
+            skip_start=skip_start, skip_end=skip_end, suggest_lr=suggest_lr, ax=ax
+        )
+
+    # NOTE:
+    # - ax.lines[0]: the lr-loss curve. It should be always available once
+    #   `ax.plot(lrs, losses)` is called. But when there is no sufficent data
+    #   point (num_iter <= skip_start + skip_end), the coordinates will be
+    #   2 empty arrays.
+    # - ax.collections[0]: the point of suggested lr (type: <PathCollection>).
+    #   It's available only when there are sufficient data points to calculate
+    #   gradient of lr-loss curve.
+    assert len(ax.lines) == 1
+
+    if suggest_lr:
+        assert isinstance(results, tuple) and len(results) == 2
+
+        ret_ax, ret_lr = results
+        assert ret_ax is ax
+
+        # XXX: Currently suggested lr is selected according to gradient of
+        # lr-loss curve, so there should be at least 2 valid data points (after
+        # filtered by `skip_start` and `skip_end`). If not, the returned lr
+        # will be None.
+        # But we would need to rework on this if there are more suggestion
+        # methods is supported in the future.
+        if num_iter - skip_start - skip_end <= 1:
+            assert ret_lr is None
+            assert len(ax.collections) == 0
+        else:
+            assert len(ax.collections) == 1
+    else:
+        # Not suggesting lr, so it just plots a lr-loss curve.
+        assert results is ax
+        assert len(ax.collections) == 0
+
+    # Check whether the data of plotted line is the same as the one filtered
+    # according to `skip_start` and `skip_end`.
+    lrs = np.array(lr_finder.history["lr"])
+    losses = np.array(lr_finder.history["loss"])
+    x, y = ax.lines[0].get_data()
+
+    # If skip_end is 0, we should replace it with None. Otherwise, it
+    # will create a slice as `x[0:-0]` which is an empty list.
+    _slice = slice(skip_start, -skip_end if skip_end != 0 else None, None)
+    assert np.allclose(x, lrs[_slice])
+    assert np.allclose(y, losses[_slice])
+
+    # Close figure to release memory
+    plt.close()
 
 
 def test_suggest_lr():
