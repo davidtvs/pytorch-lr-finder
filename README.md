@@ -1,6 +1,6 @@
 # PyTorch learning rate finder
 
-![](https://github.com/davidtvs/pytorch-lr-finder/workflows/ci-build/badge.svg?branch=master)
+![](https://github.com/davidtvs/pytorch-lr-finder/actions/workflows/ci_build.yml/badge.svg?branch=master)
 [![codecov](https://codecov.io/gh/davidtvs/pytorch-lr-finder/branch/master/graph/badge.svg)](https://codecov.io/gh/davidtvs/pytorch-lr-finder)
 [![](https://img.shields.io/pypi/v/torch-lr-finder)](https://pypi.org/project/torch-lr-finder/)
 
