@@ -40,7 +40,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.test_pypi_password }}
-          repository_url: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/
 
       - name: Sleep for 120 seconds to give Test PyPI time to update the search index
         run: sleep 120
@@ -59,19 +59,13 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Get release version
-        id: release_version
-        run: |
-          echo "version=${GITHUB_REF#refs/*/}" >> "$GITHUB_OUTPUT"
-          echo ${{ steps.release_version.outputs.version }}
-
-      - name: Install torch-lr-finder ${{ steps.release_version.outputs.version }} from Test PyPI
+      - name: Install torch-lr-finder ${{ github.ref_name }} from Test PyPI
         run: |
           python -m pip install --upgrade pip
           pip install \
             --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple \
-            torch-lr-finder==${{ steps.release_version.outputs.version }}
+            torch-lr-finder==${{ github.ref_name }}
 
   release:
     name: Create Release
@@ -84,10 +78,12 @@ jobs:
 
       - name: Create draft release
         run: |
-          gh release create ${{ github.ref }} \
-            --title "Release ${{ github.ref }}" \
+          gh release create ${{ github.ref_name }} \
+            --title "Release ${{ github.ref_name }}" \
             --generate-notes \
             --draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy-pypi:
     name: Deploy to PyPI
