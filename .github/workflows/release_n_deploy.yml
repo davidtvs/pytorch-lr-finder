@@ -37,7 +37,7 @@ jobs:
           path: dist/
 
       - name: Publish package to PyPI
-        uses: pypa/gh-action-pypi-publish@v1
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.test_pypi_password }}
           repository_url: https://test.pypi.org/legacy/
@@ -102,6 +102,6 @@ jobs:
           path: dist/
 
       # - name: Publish package to PyPI
-      #   uses: pypa/gh-action-pypi-publish@v1
+      #   uses: pypa/gh-action-pypi-publish@release/v1
       #   with:
       #     password: ${{ secrets.pypi_password }}
