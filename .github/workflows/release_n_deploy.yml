@@ -82,12 +82,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-    - name: Create draft release
-      run: |
-        gh release create ${{ github.ref }} \
-          --title "Release ${{ github.ref }}" \
-          --generate-notes \
-          --draft
+      - name: Create draft release
+        run: |
+          gh release create ${{ github.ref }} \
+            --title "Release ${{ github.ref }}" \
+            --generate-notes \
+            --draft
 
   deploy-pypi:
     name: Deploy to PyPI
