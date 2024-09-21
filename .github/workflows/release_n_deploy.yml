@@ -42,7 +42,7 @@ jobs:
           password: ${{ secrets.test_pypi_password }}
           repository-url: https://test.pypi.org/legacy/
 
-      - name: Sleep for 120 seconds to give Test PyPI time to update the search index
+      - name: Sleep for 120 seconds to give Test PyPI time to update
         run: sleep 120
 
   verify-test-pypi:
@@ -65,6 +65,7 @@ jobs:
           pip install \
             --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple \
+            --no-cache-dir \
             torch-lr-finder==${{ github.ref_name }}
 
   release:
