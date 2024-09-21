@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Slash Command Dispatch
-        uses: peter-evans/slash-command-dispatch@v1
+        uses: peter-evans/slash-command-dispatch@v4
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
           commands: flake8-lint, black-check
