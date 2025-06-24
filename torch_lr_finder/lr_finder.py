@@ -275,8 +275,8 @@ class LRFinder(object):
             >>> acc_lr_finder = LRFinder(net, optimizer, criterion, device="cuda")
             >>> acc_lr_finder.range_test(dataloader, end_lr=10, num_iter=100, accumulation_steps=accumulation_steps)
 
-        If your DataLoader returns e.g. dict, or other non standard output, intehit from TrainDataLoaderIter,
-        redefine method `inputs_labels_from_batch` so that it outputs (inputs, lables) data:
+        If your DataLoader returns e.g. dict, or other non standard output, inherit from TrainDataLoaderIter,
+        redefine method `inputs_labels_from_batch` so that it outputs (inputs, labels) data:
             >>> import torch_lr_finder
             >>> class TrainIter(torch_lr_finder.TrainDataLoaderIter):
             >>>     def inputs_labels_from_batch(self, batch_data):
